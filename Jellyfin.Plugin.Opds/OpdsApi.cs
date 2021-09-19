@@ -3,12 +3,14 @@ using System.IO;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
+using Jellyfin.Plugin.Opds.Models;
 using Jellyfin.Plugin.Opds.Services;
 using MediaBrowser.Common.Extensions;
 using MediaBrowser.Controller.Authentication;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Net;
-using MediaBrowser.Model.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
@@ -23,22 +25,18 @@ namespace Jellyfin.Plugin.Opds
     {
         private readonly IUserManager _userManager;
         private readonly IOpdsFeedProvider _opdsFeedProvider;
-        private readonly IXmlSerializer _xmlSerializer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OpdsApi"/> class.
         /// </summary>
         /// <param name="userManager">Instance of the <see cref="IUserManager"/> interface.</param>
         /// <param name="opdsFeedProvider">The opds feed provider.</param>
-        /// <param name="xmlSerializer">Instance of the <see cref="IXmlSerializer"/> interface.</param>
         public OpdsApi(
             IUserManager userManager,
-            OpdsFeedProvider opdsFeedProvider,
-            IXmlSerializer xmlSerializer)
+            OpdsFeedProvider opdsFeedProvider)
         {
             _userManager = userManager;
             _opdsFeedProvider = opdsFeedProvider;
-            _xmlSerializer = xmlSerializer;
         }
 
         /// <summary>
@@ -209,10 +207,32 @@ namespace Jellyfin.Plugin.Opds
             return user.Id;
         }
 
-        private FileStreamResult BuildOutput<T>(T outputFeed)
+        private FileStreamResult BuildOutput(FeedDto outputFeed)
         {
             var memoryStream = new MemoryStream();
-            _xmlSerializer.SerializeToStream(outputFeed, memoryStream);
+            var serializer = XmlHelper.Create(typeof(FeedDto), outputFeed.Xmlns);
+            using (var writer = new StreamWriter(memoryStream, Encoding.UTF8, IODefaults.StreamWriterBufferSize, true))
+            using (var textWriter = new XmlTextWriter(writer))
+            {
+                textWriter.Formatting = Formatting.Indented;
+                serializer.Serialize(textWriter, outputFeed);
+            }
+
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            return File(memoryStream, "application/atom+xml; charset=utf-8");
+        }
+
+        private FileStreamResult BuildOutput(OpenSearchDescriptionDto outputFeed)
+        {
+            var memoryStream = new MemoryStream();
+            var serializer = XmlHelper.Create(typeof(OpenSearchDescriptionDto), outputFeed.Xmlns!);
+            using (var writer = new StreamWriter(memoryStream, Encoding.UTF8, IODefaults.StreamWriterBufferSize, true))
+            using (var textWriter = new XmlTextWriter(writer))
+            {
+                textWriter.Formatting = Formatting.Indented;
+                serializer.Serialize(textWriter, outputFeed);
+            }
+
             memoryStream.Seek(0, SeekOrigin.Begin);
             return File(memoryStream, "application/atom+xml; charset=utf-8");
         }
