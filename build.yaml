@@ -9,7 +9,7 @@ overview: "Provides an OPDS book feed"
 description: >
   Provides an OPDS feed for book browsing.
 
-category: ""
+category: "General"
 artifacts:
   - "Jellyfin.Plugin.Opds.dll"
 changelog: |2-
