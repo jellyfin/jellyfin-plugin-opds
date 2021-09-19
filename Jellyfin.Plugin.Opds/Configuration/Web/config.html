@@ -1,0 +1,38 @@
+<div data-role="page" id="opdsConfigurationPage" class="page type-interior pluginConfigurationPage fullWidthContent"
+     data-controller="__plugin/Opds Feed.js">
+    <div class="content-primary">
+        <div class="verticalSection">
+            <div class="sectionTitleContainer">
+                <h2 class="sectionTitle">OPDS Feed</h2>
+                <a is="emby-linkbutton" class="raised raised-mini" style="margin-left: 2em;" target="_blank"
+                   href="https://github.com/jellyfin/jellyfin-plugin-opds">
+                    <i class="md-icon button-icon button-icon-left secondaryText"></i>
+                    <span>Help</span>
+                </a>
+            </div>
+        </div>
+
+        <form class="opdsConfigurationForm">
+            <div class="checkboxContainer checkboxContainer-withDescription">
+                <label class="emby-checkbox-label">
+                    <input id="chkAllowAnonymous" type="checkbox" is="emby-checkbox" />
+                    <span>Allow Anonymous Access</span>
+                </label>
+                <label>Book Libraries:</label>
+                <div id="library-wrapper">
+                </div>
+            </div>
+            <br/>
+            <button id="saveConfig" is="emby-button" type="submit" class="raised button-submit block">
+                <span>Save</span>
+            </button>
+        </form>
+        
+        <template id="library-template">
+            <label class="checkboxContainer">
+                <input is="emby-checkbox" type="checkbox" data-name="chkLibrary"/>
+                <span data-name="libraryName"></span>
+            </label>
+        </template>
+    </div>
+</div>

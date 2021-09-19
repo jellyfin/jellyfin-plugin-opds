@@ -17,16 +17,16 @@ namespace Jellyfin.Plugin.Opds.Services
         /// <summary>
         /// Get the alphabetical books feed.
         /// </summary>
-        /// <param name="userId">The user id to filter libraries by.</param>
         /// <returns>The alphabetical books feed.</returns>
-        FeedDto GetAlphabeticalFeed(Guid userId);
+        FeedDto GetAlphabeticalFeed();
 
         /// <summary>
         /// Get the list of books matching the filter.
         /// </summary>
+        /// <param name="userId">The user id to filter by.</param>
         /// <param name="filterStart">The filter start.</param>
         /// <returns>The list of books.</returns>
-        FeedDto GetAllBooks(string filterStart);
+        FeedDto GetAllBooks(Guid userId, string filterStart);
 
         /// <summary>
         /// Get the book image path.
@@ -41,5 +41,19 @@ namespace Jellyfin.Plugin.Opds.Services
         /// <param name="bookId">The book id.</param>
         /// <returns>The book path.</returns>
         string? GetBook(Guid bookId);
+
+        /// <summary>
+        /// Searches for a book.
+        /// </summary>
+        /// <param name="userId">The user id to filter by.</param>
+        /// <param name="searchTerm">the search term.</param>
+        /// <returns>The search result.</returns>
+        FeedDto SearchBooks(Guid userId, string searchTerm);
+
+        /// <summary>
+        /// Gets the search description.
+        /// </summary>
+        /// <returns>The search description.</returns>
+        OpenSearchDescriptionDto GetSearchDescription();
     }
 }

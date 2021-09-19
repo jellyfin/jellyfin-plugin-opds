@@ -14,14 +14,13 @@ namespace Jellyfin.Plugin.Opds.Configuration
         public PluginConfiguration()
         {
             AllowAnonymousAccess = false;
-            // TODO don't hardcode, allow user to edit library id.
-            BookLibraries = new[] { new Guid("4e985111ed7f570b595204d82adb02f3") };
+            BookLibraries = Array.Empty<Guid>();
         }
 
         /// <summary>
         /// Gets or sets a value indicating whether the api should allow anonymous access.
         /// </summary>
-        public bool AllowAnonymousAccess { get; set; } = true;
+        public bool AllowAnonymousAccess { get; set; }
 
         /// <summary>
         /// Gets or sets the list of book libraries.

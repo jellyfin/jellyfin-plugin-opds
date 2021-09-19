@@ -3,11 +3,11 @@ using System.IO;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
-using Jellyfin.Plugin.Opds.Models;
 using Jellyfin.Plugin.Opds.Services;
 using MediaBrowser.Common.Extensions;
 using MediaBrowser.Controller.Authentication;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Net;
 using MediaBrowser.Model.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -62,8 +62,8 @@ namespace Jellyfin.Plugin.Opds
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult> GetAlphabeticalRootFeed()
         {
-            var userId = await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.GetAlphabeticalFeed(userId);
+            await AuthorizeAsync().ConfigureAwait(false);
+            var feeds = _opdsFeedProvider.GetAlphabeticalFeed();
             return BuildOutput(feeds);
         }
 
@@ -76,9 +76,50 @@ namespace Jellyfin.Plugin.Opds
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult> GetAlphabeticalFeed(string startFilter)
         {
-            await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.GetAllBooks(startFilter);
+            var userId = await AuthorizeAsync().ConfigureAwait(false);
+            var feeds = _opdsFeedProvider.GetAllBooks(userId, startFilter);
             return BuildOutput(feeds);
+        }
+
+        /// <summary>
+        /// Gets the search result.
+        /// </summary>
+        /// <param name="searchTerms">The search terms.</param>
+        /// <returns>The search feed xml.</returns>
+        [HttpGet("search/{searchTerms}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult> SearchBookFromRoute(string searchTerms)
+        {
+            var userId = await AuthorizeAsync().ConfigureAwait(false);
+            var feeds = _opdsFeedProvider.SearchBooks(userId, searchTerms);
+            return BuildOutput(feeds);
+        }
+
+        /// <summary>
+        /// Gets the search result.
+        /// </summary>
+        /// <param name="searchTerms">The search terms.</param>
+        /// <returns>The search feed xml.</returns>
+        [HttpGet("search")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult> SearchBookFromQuery([FromQuery] string searchTerms)
+        {
+            var userId = await AuthorizeAsync().ConfigureAwait(false);
+            var feeds = _opdsFeedProvider.SearchBooks(userId, searchTerms);
+            return BuildOutput(feeds);
+        }
+
+        /// <summary>
+        /// Gets the search description.
+        /// </summary>
+        /// <returns>The search description xml.</returns>
+        [HttpGet("osd")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult> GetSearchDescription()
+        {
+            await AuthorizeAsync().ConfigureAwait(false);
+            var searchDescription = _opdsFeedProvider.GetSearchDescription();
+            return BuildOutput(searchDescription);
         }
 
         /// <summary>
@@ -98,7 +139,7 @@ namespace Jellyfin.Plugin.Opds
                 return NotFound();
             }
 
-            return PhysicalFile(imagePath, "image/jpeg");
+            return PhysicalFile(imagePath, MimeTypes.GetMimeType(imagePath));
         }
 
         /// <summary>
@@ -118,7 +159,7 @@ namespace Jellyfin.Plugin.Opds
                 return NotFound();
             }
 
-            return PhysicalFile(bookPath, "application/epub+zip");
+            return PhysicalFile(bookPath, MimeTypes.GetMimeType(bookPath));
         }
 
         private async Task<Guid> AuthorizeAsync()
@@ -168,10 +209,10 @@ namespace Jellyfin.Plugin.Opds
             return user.Id;
         }
 
-        private FileStreamResult BuildOutput(FeedDto feedDto)
+        private FileStreamResult BuildOutput<T>(T outputFeed)
         {
             var memoryStream = new MemoryStream();
-            _xmlSerializer.SerializeToStream(feedDto, memoryStream);
+            _xmlSerializer.SerializeToStream(outputFeed, memoryStream);
             memoryStream.Seek(0, SeekOrigin.Begin);
             return File(memoryStream, "application/atom+xml; charset=utf-8");
         }

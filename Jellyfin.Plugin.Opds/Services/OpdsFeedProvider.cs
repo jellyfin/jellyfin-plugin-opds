@@ -1,10 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net.Mime;
 using Jellyfin.Plugin.Opds.Models;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
-using Microsoft.Extensions.Logging;
+using MediaBrowser.Model.Library;
+using MediaBrowser.Model.Net;
+using MediaBrowser.Model.Search;
 
 namespace Jellyfin.Plugin.Opds.Services
 {
@@ -16,24 +20,28 @@ namespace Jellyfin.Plugin.Opds.Services
         private static readonly string[] IncludeItemTypes = { nameof(Book) };
         private static readonly AuthorDto PluginAuthor = new ("Jellyfin", "https://github.com/jellyfin/jellyfin-plugin-opds");
 
-        private readonly ILogger<OpdsFeedProvider> _logger;
         private readonly ILibraryManager _libraryManager;
         private readonly IServerConfigurationManager _serverConfigurationManager;
+        private readonly IUserViewManager _userViewManager;
+        private readonly ISearchEngine _searchEngine;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OpdsFeedProvider"/> class.
         /// </summary>
-        /// <param name="logger">Instance of the <see cref="ILogger{OpdsFeedProvider}"/> interface.</param>
         /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
         /// <param name="serverConfigurationManager">Instance of the <see cref="IServerConfigurationManager"/> interface.</param>
+        /// <param name="userViewManager">Instance of the <see cref="IUserViewManager"/> interface.</param>
+        /// <param name="searchEngine">Instance of the <see cref="ISearchEngine"/> interface.</param>
         public OpdsFeedProvider(
-            ILogger<OpdsFeedProvider> logger,
             ILibraryManager libraryManager,
-            IServerConfigurationManager serverConfigurationManager)
+            IServerConfigurationManager serverConfigurationManager,
+            IUserViewManager userViewManager,
+            ISearchEngine searchEngine)
         {
-            _logger = logger;
             _libraryManager = libraryManager;
             _serverConfigurationManager = serverConfigurationManager;
+            _userViewManager = userViewManager;
+            _searchEngine = searchEngine;
         }
 
         /// <inheritdoc />
@@ -50,7 +58,7 @@ namespace Jellyfin.Plugin.Opds.Services
                     new LinkDto("search", baseUrl + "/opds/osd", "application/opensearchdescription+xml"),
                     new LinkDto("search", baseUrl + "/opds/search/{searchTerms}", "application/atom+xml", "Search")
                 },
-                Title = _serverConfigurationManager.Configuration.ServerName,
+                Title = GetServerName(),
                 Author = PluginAuthor,
                 Entries = new List<EntryDto>
                 {
@@ -69,7 +77,7 @@ namespace Jellyfin.Plugin.Opds.Services
         }
 
         /// <inheritdoc />
-        public FeedDto GetAlphabeticalFeed(Guid userId)
+        public FeedDto GetAlphabeticalFeed()
         {
             var baseUrl = GetBaseUrl();
             var utcNow = DateTime.UtcNow;
@@ -111,7 +119,7 @@ namespace Jellyfin.Plugin.Opds.Services
             {
                 Id = Guid.NewGuid().ToString(),
                 Author = PluginAuthor,
-                Title = _serverConfigurationManager.Configuration.ServerName,
+                Title = GetServerName(),
                 Links = new[]
                 {
                     new LinkDto("self", baseUrl + "/opds/books?", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
@@ -124,22 +132,37 @@ namespace Jellyfin.Plugin.Opds.Services
             };
         }
 
-        /// <summary>
-        /// Gets all books.
-        /// </summary>
-        /// <param name="filterStart">The start filter character.</param>
-        /// <returns>The list of books.</returns>
-        public FeedDto GetAllBooks(string filterStart)
+        /// <inheritdoc />
+        public FeedDto GetAllBooks(Guid userId, string filterStart)
         {
             var baseUrl = GetBaseUrl();
-            var books = new List<Book>();
             if (filterStart.Length != 1)
             {
                 filterStart = string.Empty;
             }
 
+            Guid[]? libraryIds = null;
+
+            if (userId != Guid.Empty)
+            {
+                libraryIds = _userViewManager.GetUserViews(new UserViewQuery
+                    {
+                        IncludeExternalContent = false,
+                        UserId = userId
+                    })
+                    .Select(v => v.Id)
+                    .ToArray();
+            }
+
+            var entries = new List<EntryDto>();
             foreach (var libraryId in OpdsPlugin.Instance!.Configuration.BookLibraries)
             {
+                if (libraryIds is not null && !libraryIds.Contains(libraryId))
+                {
+                    // user doesn't have permission to view library.
+                    continue;
+                }
+
                 var items = _libraryManager.GetItemList(new InternalItemsQuery
                 {
                     ParentId = libraryId,
@@ -153,48 +176,20 @@ namespace Jellyfin.Plugin.Opds.Services
                     continue;
                 }
 
-                foreach (var item in items)
+                foreach (var item in items.OrderByDescending(item => item.SortName))
                 {
                     if (item is Book book)
                     {
-                        books.Add(book);
+                        entries.Add(CreateEntry(book, baseUrl));
                     }
                 }
-            }
-
-            var entries = new List<EntryDto>(books.Count);
-            foreach (var book in books)
-            {
-                entries.Add(new EntryDto(
-                    book.Name,
-                    book.Id.ToString(),
-                    book.DateModified)
-                {
-                    Author = new AuthorDto
-                    {
-                        Name = book.Parent.Name
-                    },
-                    // TODO verify.
-                    Summary = book.Overview,
-                    Links = new List<LinkDto>
-                    {
-                        // TODO change type based on actual media type.
-                        new ("http://opds-spec.org/image",  baseUrl + "/opds/cover/" + book.Id, "image/jpeg"),
-                        new ("http://opds-spec.org/image/thumbnail",  baseUrl + "/opds/cover/" + book.Id, "image/jpeg"),
-                        new ("http://opds-spec.org/acquisition", baseUrl + "/opds/download/" + book.Id, "application/epub+zip")
-                        {
-                            UpdateTime = book.DateModified,
-                            Length = book.Size
-                        }
-                    }
-                });
             }
 
             return new FeedDto
             {
                 Id = Guid.NewGuid().ToString(),
                 Author = PluginAuthor,
-                Title = _serverConfigurationManager.Configuration.ServerName,
+                Title = GetServerName(),
                 Links = new[]
                 {
                     new LinkDto("self", baseUrl + "/opds/books/letter/" + filterStart + "?", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
@@ -221,6 +216,78 @@ namespace Jellyfin.Plugin.Opds.Services
             return item?.Path;
         }
 
+        /// <inheritdoc />
+        public FeedDto SearchBooks(Guid userId, string searchTerm)
+        {
+            var baseUrl = GetBaseUrl();
+            var searchResult = _searchEngine.GetSearchHints(new SearchQuery
+            {
+                Limit = 100,
+                SearchTerm = searchTerm,
+                IncludeItemTypes = IncludeItemTypes,
+                UserId = userId
+            });
+
+            var entries = new List<EntryDto>(searchResult.Items.Count);
+            foreach (var result in searchResult.Items)
+            {
+                if (result.Item is Book book)
+                {
+                    entries.Add(CreateEntry(book, baseUrl));
+                }
+            }
+
+            return new FeedDto
+            {
+                Id = Guid.NewGuid().ToString(),
+                Links = new[]
+                {
+                    new LinkDto("self", baseUrl + "/opds/search/" + searchTerm + "?", "application/atom+xml;profile=opds-catalog;kind=navigation"),
+                    new LinkDto("start", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;kind=navigation", "Start"),
+                    new LinkDto("up", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                    new LinkDto("search", baseUrl + "/opds/osd", "application/opensearchdescription+xml"),
+                    new LinkDto("search", baseUrl + "/opds/search/{searchTerms}", "application/atom+xml", "Search")
+                },
+                Title = GetServerName(),
+                Author = PluginAuthor,
+                Entries = entries
+            };
+        }
+
+        /// <inheritdoc />
+        public OpenSearchDescriptionDto GetSearchDescription()
+        {
+            var baseUrl = GetBaseUrl();
+            var dto = new OpenSearchDescriptionDto
+            {
+                Xmlns = "http://a9.com/-/spec/opensearch/1.1/",
+                Description = "Jellyfin eBook Catalog",
+                Developer = "Jellyfin",
+                Contact = "https://github.com/jellyfin/jellyfin-plugin-opds",
+                SyndicationRight = "open",
+                Language = "en-EN",
+                OutputEncoding = "UTF-8",
+                InputEncoding = "UTF-8",
+                ShortName = GetServerName(),
+                LongName = GetServerName(),
+                Url = new[]
+                {
+                    new OpenSearchUrlDto
+                    {
+                        Type = MediaTypeNames.Text.Html,
+                        Template = baseUrl + "/opds/search/{searchTerms}"
+                    },
+                    new OpenSearchUrlDto
+                    {
+                        Type = "application/atom+xml",
+                        Template = baseUrl + "/opds/search?query={searchTerms}"
+                    }
+                }
+            };
+
+            return dto;
+        }
+
         private string GetBaseUrl()
         {
             var baseUrl = _serverConfigurationManager.Configuration.BaseUrl;
@@ -230,6 +297,53 @@ namespace Jellyfin.Plugin.Opds.Services
             }
 
             return baseUrl;
+        }
+
+        private string GetServerName()
+        {
+            var serverName = _serverConfigurationManager.Configuration.ServerName;
+            return string.IsNullOrEmpty(serverName) ? "Jellyfin" : serverName;
+        }
+
+        private EntryDto CreateEntry(Book book, string baseUrl)
+        {
+            var entry = new EntryDto(
+                book.Name,
+                book.Id.ToString(),
+                book.DateModified)
+            {
+                Author = new AuthorDto
+                {
+                    Name = book.Parent.Name
+                },
+                Summary = book.Overview,
+                Links = new List<LinkDto>()
+            };
+
+            if (!string.IsNullOrEmpty(book.PrimaryImagePath))
+            {
+                var imageMimeType = MimeTypes.GetMimeType(book.PrimaryImagePath);
+                if (!string.IsNullOrEmpty(imageMimeType))
+                {
+                    entry.Links.Add(new ("http://opds-spec.org/image", baseUrl + "/opds/cover/" + book.Id, imageMimeType));
+                    entry.Links.Add(new ("http://opds-spec.org/image/thumbnail", baseUrl + "/opds/cover/" + book.Id, imageMimeType));
+                }
+            }
+
+            if (!string.IsNullOrEmpty(book.Path))
+            {
+                var bookMimeType = MimeTypes.GetMimeType(book.Path);
+                if (!string.IsNullOrEmpty(bookMimeType))
+                {
+                    entry.Links.Add(new ("http://opds-spec.org/acquisition", baseUrl + "/opds/download/" + book.Id, bookMimeType)
+                    {
+                        UpdateTime = book.DateModified,
+                        Length = book.Size
+                    });
+                }
+            }
+
+            return entry;
         }
     }
 }
