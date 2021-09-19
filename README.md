@@ -5,7 +5,7 @@
 <img alt="Plugin Banner" src="https://raw.githubusercontent.com/jellyfin/jellyfin-ux/master/plugins/SVG/jellyfin-plugin-opds.svg?sanitize=true"/>
 <br/>
 <br/>
-<a href="https://github.com/jellyfin/jellyfin-plugin-opds/actions?query=workflow%3A%22Test+Build+Plugin%22">
+<a href="https://github.com/jellyfin/jellyfin-plugin-opds/actions?query=workflow%3A%22Build+Plugin%22">
 <img alt="GitHub Workflow Status" src="https://img.shields.io/github/workflow/status/jellyfin/jellyfin-plugin-opds/Test%20Build%20Plugin.svg">
 </a>
 <a href="https://github.com/jellyfin/jellyfin-plugin-opds">
