@@ -314,7 +314,7 @@ namespace Jellyfin.Plugin.Opds.Services
             {
                 Author = new AuthorDto
                 {
-                    Name = book.Parent.Name
+                    Name = book.GetParent().Name
                 },
                 Summary = book.Overview,
                 Links = new List<LinkDto>()
