@@ -195,7 +195,7 @@ namespace Jellyfin.Plugin.Opds
                     username,
                     password,
                     string.Empty,
-                    HttpContext.GetNormalizedRemoteIp(),
+                    HttpContext.GetNormalizedRemoteIp().ToString(),
                     true)
                 .ConfigureAwait(false);
 
