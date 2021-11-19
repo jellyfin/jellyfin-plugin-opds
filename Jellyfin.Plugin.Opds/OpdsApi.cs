@@ -182,7 +182,7 @@ namespace Jellyfin.Plugin.Opds
             }
 
             var credentialString = Encoding.UTF8.GetString(Convert.FromBase64String(authenticationHeaderValue.Parameter));
-            var credentialSplitIndex = credentialString.IndexOf(':');
+            var credentialSplitIndex = credentialString.IndexOf(':', StringComparison.Ordinal);
             if (credentialSplitIndex < 0)
             {
                 throw new AuthenticationException("Basic Authentication is required");

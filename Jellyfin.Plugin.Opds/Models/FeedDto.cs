@@ -1,3 +1,6 @@
+#pragma warning disable CA2227
+#pragma warning disable CA1002
+
 using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
