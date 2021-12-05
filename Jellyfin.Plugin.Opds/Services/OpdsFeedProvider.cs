@@ -176,7 +176,7 @@ namespace Jellyfin.Plugin.Opds.Services
                     continue;
                 }
 
-                foreach (var item in items.OrderByDescending(item => item.SortName))
+                foreach (var item in items.OrderBy(item => item.SortName))
                 {
                     if (item is Book book)
                     {
