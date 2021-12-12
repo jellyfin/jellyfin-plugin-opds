@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mime;
 using Jellyfin.Plugin.Opds.Models;
-using MediaBrowser.Controller.Configuration;
+using MediaBrowser.Controller;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Library;
@@ -21,33 +21,32 @@ namespace Jellyfin.Plugin.Opds.Services
         private static readonly AuthorDto PluginAuthor = new ("Jellyfin", "https://github.com/jellyfin/jellyfin-plugin-opds");
 
         private readonly ILibraryManager _libraryManager;
-        private readonly IServerConfigurationManager _serverConfigurationManager;
         private readonly IUserViewManager _userViewManager;
         private readonly ISearchEngine _searchEngine;
+        private readonly IServerApplicationHost _serverApplicationHost;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OpdsFeedProvider"/> class.
         /// </summary>
         /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
-        /// <param name="serverConfigurationManager">Instance of the <see cref="IServerConfigurationManager"/> interface.</param>
         /// <param name="userViewManager">Instance of the <see cref="IUserViewManager"/> interface.</param>
         /// <param name="searchEngine">Instance of the <see cref="ISearchEngine"/> interface.</param>
+        /// <param name="serverApplicationHost">Instance of the <see cref="IServerApplicationHost"/> interface.</param>
         public OpdsFeedProvider(
             ILibraryManager libraryManager,
-            IServerConfigurationManager serverConfigurationManager,
             IUserViewManager userViewManager,
-            ISearchEngine searchEngine)
+            ISearchEngine searchEngine,
+            IServerApplicationHost serverApplicationHost)
         {
             _libraryManager = libraryManager;
-            _serverConfigurationManager = serverConfigurationManager;
             _userViewManager = userViewManager;
             _searchEngine = searchEngine;
+            _serverApplicationHost = serverApplicationHost;
         }
 
         /// <inheritdoc />
-        public FeedDto GetFeeds()
+        public FeedDto GetFeeds(string baseUrl)
         {
-            var baseUrl = GetBaseUrl();
             return new FeedDto
             {
                 Id = Guid.NewGuid().ToString(),
@@ -77,9 +76,8 @@ namespace Jellyfin.Plugin.Opds.Services
         }
 
         /// <inheritdoc />
-        public FeedDto GetAlphabeticalFeed()
+        public FeedDto GetAlphabeticalFeed(string baseUrl)
         {
-            var baseUrl = GetBaseUrl();
             var utcNow = DateTime.UtcNow;
             var entries = new List<EntryDto>
             {
@@ -133,9 +131,8 @@ namespace Jellyfin.Plugin.Opds.Services
         }
 
         /// <inheritdoc />
-        public FeedDto GetAllBooks(Guid userId, string filterStart)
+        public FeedDto GetAllBooks(string baseUrl, Guid userId, string filterStart)
         {
-            var baseUrl = GetBaseUrl();
             if (filterStart.Length != 1)
             {
                 filterStart = string.Empty;
@@ -217,9 +214,8 @@ namespace Jellyfin.Plugin.Opds.Services
         }
 
         /// <inheritdoc />
-        public FeedDto SearchBooks(Guid userId, string searchTerm)
+        public FeedDto SearchBooks(string baseUrl, Guid userId, string searchTerm)
         {
-            var baseUrl = GetBaseUrl();
             var searchResult = _searchEngine.GetSearchHints(new SearchQuery
             {
                 Limit = 100,
@@ -255,9 +251,8 @@ namespace Jellyfin.Plugin.Opds.Services
         }
 
         /// <inheritdoc />
-        public OpenSearchDescriptionDto GetSearchDescription()
+        public OpenSearchDescriptionDto GetSearchDescription(string baseUrl)
         {
-            var baseUrl = GetBaseUrl();
             var dto = new OpenSearchDescriptionDto
             {
                 Xmlns = "http://a9.com/-/spec/opensearch/1.1/",
@@ -288,20 +283,9 @@ namespace Jellyfin.Plugin.Opds.Services
             return dto;
         }
 
-        private string GetBaseUrl()
-        {
-            var baseUrl = _serverConfigurationManager.Configuration.BaseUrl;
-            if (string.Equals(baseUrl, "/", StringComparison.Ordinal))
-            {
-                baseUrl = string.Empty;
-            }
-
-            return baseUrl;
-        }
-
         private string GetServerName()
         {
-            var serverName = _serverConfigurationManager.Configuration.ServerName;
+            var serverName = _serverApplicationHost.FriendlyName;
             return string.IsNullOrEmpty(serverName) ? "Jellyfin" : serverName;
         }
 

@@ -11,22 +11,25 @@ namespace Jellyfin.Plugin.Opds.Services
         /// <summary>
         /// Get the root feeds list.
         /// </summary>
+        /// <param name="baseUrl">The request path base.</param>
         /// <returns>The root feed.</returns>
-        FeedDto GetFeeds();
+        FeedDto GetFeeds(string baseUrl);
 
         /// <summary>
         /// Get the alphabetical books feed.
         /// </summary>
+        /// <param name="baseUrl">The request path base.</param>
         /// <returns>The alphabetical books feed.</returns>
-        FeedDto GetAlphabeticalFeed();
+        FeedDto GetAlphabeticalFeed(string baseUrl);
 
         /// <summary>
         /// Get the list of books matching the filter.
         /// </summary>
+        /// <param name="baseUrl">The request path base.</param>
         /// <param name="userId">The user id to filter by.</param>
         /// <param name="filterStart">The filter start.</param>
         /// <returns>The list of books.</returns>
-        FeedDto GetAllBooks(Guid userId, string filterStart);
+        FeedDto GetAllBooks(string baseUrl, Guid userId, string filterStart);
 
         /// <summary>
         /// Get the book image path.
@@ -45,15 +48,17 @@ namespace Jellyfin.Plugin.Opds.Services
         /// <summary>
         /// Searches for a book.
         /// </summary>
+        /// <param name="baseUrl">The request path base.</param>
         /// <param name="userId">The user id to filter by.</param>
         /// <param name="searchTerm">the search term.</param>
         /// <returns>The search result.</returns>
-        FeedDto SearchBooks(Guid userId, string searchTerm);
+        FeedDto SearchBooks(string baseUrl, Guid userId, string searchTerm);
 
         /// <summary>
         /// Gets the search description.
         /// </summary>
+        /// <param name="baseUrl">The request path base.</param>
         /// <returns>The search description.</returns>
-        OpenSearchDescriptionDto GetSearchDescription();
+        OpenSearchDescriptionDto GetSearchDescription(string baseUrl);
     }
 }

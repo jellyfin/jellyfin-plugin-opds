@@ -48,7 +48,7 @@ namespace Jellyfin.Plugin.Opds
         public async Task<ActionResult> GetRootFeed()
         {
             await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.GetFeeds();
+            var feeds = _opdsFeedProvider.GetFeeds(Request.PathBase);
             return BuildOutput(feeds);
         }
 
@@ -61,7 +61,7 @@ namespace Jellyfin.Plugin.Opds
         public async Task<ActionResult> GetAlphabeticalRootFeed()
         {
             await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.GetAlphabeticalFeed();
+            var feeds = _opdsFeedProvider.GetAlphabeticalFeed(Request.PathBase);
             return BuildOutput(feeds);
         }
 
@@ -75,7 +75,7 @@ namespace Jellyfin.Plugin.Opds
         public async Task<ActionResult> GetAlphabeticalFeed(string startFilter)
         {
             var userId = await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.GetAllBooks(userId, startFilter);
+            var feeds = _opdsFeedProvider.GetAllBooks(Request.PathBase, userId, startFilter);
             return BuildOutput(feeds);
         }
 
@@ -89,7 +89,7 @@ namespace Jellyfin.Plugin.Opds
         public async Task<ActionResult> SearchBookFromRoute(string searchTerms)
         {
             var userId = await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.SearchBooks(userId, searchTerms);
+            var feeds = _opdsFeedProvider.SearchBooks(Request.PathBase, userId, searchTerms);
             return BuildOutput(feeds);
         }
 
@@ -103,7 +103,7 @@ namespace Jellyfin.Plugin.Opds
         public async Task<ActionResult> SearchBookFromQuery([FromQuery] string searchTerms)
         {
             var userId = await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.SearchBooks(userId, searchTerms);
+            var feeds = _opdsFeedProvider.SearchBooks(Request.PathBase, userId, searchTerms);
             return BuildOutput(feeds);
         }
 
@@ -116,7 +116,7 @@ namespace Jellyfin.Plugin.Opds
         public async Task<ActionResult> GetSearchDescription()
         {
             await AuthorizeAsync().ConfigureAwait(false);
-            var searchDescription = _opdsFeedProvider.GetSearchDescription();
+            var searchDescription = _opdsFeedProvider.GetSearchDescription(Request.PathBase);
             return BuildOutput(searchDescription);
         }
 
