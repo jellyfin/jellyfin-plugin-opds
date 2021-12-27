@@ -4,6 +4,7 @@ using System.Net.Mime;
 using Jellyfin.Data.Enums;
 using Jellyfin.Plugin.Opds.Models;
 using MediaBrowser.Controller;
+using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Net;
@@ -17,7 +18,6 @@ namespace Jellyfin.Plugin.Opds.Services;
 public class OpdsFeedProvider : IOpdsFeedProvider
 {
     private static readonly string[] BookItemTypes = { nameof(Book) };
-    private static readonly string[] GenreItemTypes = { nameof(Genre) };
 
     private static readonly AuthorDto PluginAuthor = new("Jellyfin", "https://github.com/jellyfin/jellyfin-plugin-opds");
 
@@ -164,11 +164,12 @@ public class OpdsFeedProvider : IOpdsFeedProvider
             Entries = new List<EntryDto>()
         };
 
-        // TODO fix query for genres.
         var query = new InternalItemsQuery
         {
-            IncludeItemTypes = GenreItemTypes,
-            MediaTypes = BookItemTypes
+            IncludeItemTypes = BookItemTypes,
+            OrderBy = new (string, SortOrder)[] { ("SortName", SortOrder.Ascending) },
+            Recursive = true,
+            DtoOptions = new DtoOptions()
         };
 
         if (userId != Guid.Empty)
@@ -215,7 +216,8 @@ public class OpdsFeedProvider : IOpdsFeedProvider
             IncludeItemTypes = BookItemTypes,
             OrderBy = new (string, SortOrder)[] { ("SortName", SortOrder.Ascending) },
             NameStartsWith = filterStart,
-            Recursive = true
+            Recursive = true,
+            DtoOptions = new DtoOptions()
         };
 
         if (userId != Guid.Empty)
@@ -261,7 +263,8 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         {
             IncludeItemTypes = BookItemTypes,
             OrderBy = new (string, SortOrder)[] { ("SortName", SortOrder.Ascending) },
-            GenreIds = new[] { genreId }
+            GenreIds = new[] { genreId },
+            DtoOptions = new DtoOptions()
         };
 
         if (userId != Guid.Empty)
@@ -270,11 +273,11 @@ public class OpdsFeedProvider : IOpdsFeedProvider
             query.SetUser(user);
         }
 
-        var queryResult = _libraryManager.GetGenres(query);
+        var queryResult = _libraryManager.GetItemList(query);
         var entries = new List<EntryDto>();
         if (queryResult is not null)
         {
-            foreach (var (item, _) in queryResult.Items)
+            foreach (var item in queryResult)
             {
                 if (item is Book book)
                 {
