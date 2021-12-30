@@ -1,333 +1,436 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Mime;
+using Jellyfin.Data.Enums;
 using Jellyfin.Plugin.Opds.Models;
 using MediaBrowser.Controller;
+using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
-using MediaBrowser.Model.Library;
 using MediaBrowser.Model.Net;
 using MediaBrowser.Model.Search;
 
-namespace Jellyfin.Plugin.Opds.Services
+namespace Jellyfin.Plugin.Opds.Services;
+
+/// <summary>
+/// OPDS feed provider.
+/// </summary>
+public class OpdsFeedProvider : IOpdsFeedProvider
 {
+    private static readonly string[] BookItemTypes = { nameof(Book) };
+
+    private static readonly AuthorDto PluginAuthor = new("Jellyfin", "https://github.com/jellyfin/jellyfin-plugin-opds");
+
+    private readonly ILibraryManager _libraryManager;
+    private readonly ISearchEngine _searchEngine;
+    private readonly IServerApplicationHost _serverApplicationHost;
+    private readonly IUserManager _userManager;
+
     /// <summary>
-    /// OPDS feed provider.
+    /// Initializes a new instance of the <see cref="OpdsFeedProvider"/> class.
     /// </summary>
-    public class OpdsFeedProvider : IOpdsFeedProvider
+    /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
+    /// <param name="searchEngine">Instance of the <see cref="ISearchEngine"/> interface.</param>
+    /// <param name="serverApplicationHost">Instance of the <see cref="IServerApplicationHost"/> interface.</param>
+    /// <param name="userManager">Instance of the <see cref="IUserManager"/> interface.</param>
+    public OpdsFeedProvider(
+        ILibraryManager libraryManager,
+        ISearchEngine searchEngine,
+        IServerApplicationHost serverApplicationHost,
+        IUserManager userManager)
     {
-        private static readonly string[] IncludeItemTypes = { nameof(Book) };
-        private static readonly AuthorDto PluginAuthor = new ("Jellyfin", "https://github.com/jellyfin/jellyfin-plugin-opds");
+        _libraryManager = libraryManager;
+        _searchEngine = searchEngine;
+        _serverApplicationHost = serverApplicationHost;
+        _userManager = userManager;
+    }
 
-        private readonly ILibraryManager _libraryManager;
-        private readonly IUserViewManager _userViewManager;
-        private readonly ISearchEngine _searchEngine;
-        private readonly IServerApplicationHost _serverApplicationHost;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="OpdsFeedProvider"/> class.
-        /// </summary>
-        /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
-        /// <param name="userViewManager">Instance of the <see cref="IUserViewManager"/> interface.</param>
-        /// <param name="searchEngine">Instance of the <see cref="ISearchEngine"/> interface.</param>
-        /// <param name="serverApplicationHost">Instance of the <see cref="IServerApplicationHost"/> interface.</param>
-        public OpdsFeedProvider(
-            ILibraryManager libraryManager,
-            IUserViewManager userViewManager,
-            ISearchEngine searchEngine,
-            IServerApplicationHost serverApplicationHost)
+    /// <inheritdoc />
+    public FeedDto GetFeeds(string baseUrl)
+    {
+        return new FeedDto
         {
-            _libraryManager = libraryManager;
-            _userViewManager = userViewManager;
-            _searchEngine = searchEngine;
-            _serverApplicationHost = serverApplicationHost;
-        }
-
-        /// <inheritdoc />
-        public FeedDto GetFeeds(string baseUrl)
-        {
-            return new FeedDto
+            Id = Guid.NewGuid().ToString(),
+            Links = new[]
             {
-                Id = Guid.NewGuid().ToString(),
-                Links = new[]
-                {
-                    new LinkDto("self", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;kind=navigation"),
-                    new LinkDto("start", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;kind=navigation", "Start"),
-                    new LinkDto("search", baseUrl + "/opds/osd", "application/opensearchdescription+xml"),
-                    new LinkDto("search", baseUrl + "/opds/search/{searchTerms}", "application/atom+xml", "Search")
-                },
-                Title = GetServerName(),
-                Author = PluginAuthor,
-                Entries = new List<EntryDto>
-                {
-                    new ("Alphabetical Books",
-                        "/opds/books",
-                        new ContentDto("text", "Books sorted alphabetically"),
-                        DateTime.UtcNow)
-                    {
-                        Links = new List<LinkDto>
-                        {
-                            new (baseUrl + "/opds/books", "application/atom+xml;profile=opds-catalog")
-                        }
-                    }
-                }
-            };
-        }
-
-        /// <inheritdoc />
-        public FeedDto GetAlphabeticalFeed(string baseUrl)
-        {
-            var utcNow = DateTime.UtcNow;
-            var entries = new List<EntryDto>
+                new LinkDto("self", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;kind=navigation"),
+                new LinkDto("start", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;kind=navigation", "Start"),
+                new LinkDto("search", baseUrl + "/opds/osd", "application/opensearchdescription+xml"),
+                new LinkDto("search", baseUrl + "/opds/search/{searchTerms}", "application/atom+xml", "Search")
+            },
+            Title = GetServerName(),
+            Author = PluginAuthor,
+            Entries = new List<EntryDto>
             {
-                new (
-                    "All",
-                    "/opds/books/letter/00",
-                    utcNow)
+                new(
+                    "Alphabetical Books",
+                    "/opds/books",
+                    new ContentDto("text", "Books sorted alphabetically"),
+                    DateTime.UtcNow)
                 {
                     Links = new List<LinkDto>
                     {
-                        new ("subsection",
-                            baseUrl + "/opds/books/letter/00",
-                            "application/atom+xml;profile=opds-catalog")
+                        new(baseUrl + "/opds/books", "application/atom+xml;profile=opds-catalog")
                     }
-                }
-            };
-
-            // TODO add entries based on library contents first char.
-            for (var i = 'A'; i <= 'Z'; i++)
-            {
-                var letter = char.ToString(i);
-                entries.Add(new EntryDto(
-                    letter,
-                    "/opds/books/letter/" + letter,
-                    utcNow)
+                },
+                new(
+                    "Genres",
+                    "/opds/genres",
+                    new ContentDto("text", "Book genres"),
+                    DateTime.UtcNow)
                 {
                     Links = new List<LinkDto>
                     {
-                        new ("subsection",
-                            baseUrl + "/opds/books/letter/" + letter,
-                            "application/atom+xml;profile=opds-catalog")
-                    }
-                });
-            }
-
-            return new FeedDto
-            {
-                Id = Guid.NewGuid().ToString(),
-                Author = PluginAuthor,
-                Title = GetServerName(),
-                Links = new[]
-                {
-                    new LinkDto("self", baseUrl + "/opds/books?", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
-                    new LinkDto("start", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
-                    new LinkDto("up", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
-                    new LinkDto("search", baseUrl + "/opds/osd", "application/opensearchdescription+xml"),
-                    new LinkDto("search", baseUrl + "/opds/search/{searchTerms}", "application/atom+xml", "Search")
-                },
-                Entries = entries
-            };
-        }
-
-        /// <inheritdoc />
-        public FeedDto GetAllBooks(string baseUrl, Guid userId, string filterStart)
-        {
-            if (filterStart.Length != 1)
-            {
-                filterStart = string.Empty;
-            }
-
-            Guid[]? libraryIds = null;
-
-            if (userId != Guid.Empty)
-            {
-                libraryIds = _userViewManager.GetUserViews(new UserViewQuery
-                    {
-                        IncludeExternalContent = false,
-                        UserId = userId
-                    })
-                    .Select(v => v.Id)
-                    .ToArray();
-            }
-
-            var entries = new List<EntryDto>();
-            foreach (var libraryId in OpdsPlugin.Instance!.Configuration.BookLibraries)
-            {
-                if (libraryIds is not null && !libraryIds.Contains(libraryId))
-                {
-                    // user doesn't have permission to view library.
-                    continue;
-                }
-
-                var items = _libraryManager.GetItemList(new InternalItemsQuery
-                {
-                    ParentId = libraryId,
-                    IncludeItemTypes = IncludeItemTypes,
-                    Recursive = true,
-                    NameStartsWith = string.IsNullOrEmpty(filterStart) ? null : filterStart
-                });
-
-                if (items is null || items.Count == 0)
-                {
-                    continue;
-                }
-
-                foreach (var item in items.OrderBy(item => item.SortName))
-                {
-                    if (item is Book book)
-                    {
-                        entries.Add(CreateEntry(book, baseUrl));
+                        new(baseUrl + "/opds/genres", "application/atom+xml;profile=opds-catalog")
                     }
                 }
             }
+        };
+    }
 
-            return new FeedDto
+    /// <inheritdoc />
+    public FeedDto GetAlphabeticalFeed(string baseUrl)
+    {
+        var utcNow = DateTime.UtcNow;
+        var entries = new List<EntryDto>
+        {
+            new(
+                "All",
+                "/opds/books/letter/00",
+                utcNow)
             {
-                Id = Guid.NewGuid().ToString(),
-                Author = PluginAuthor,
-                Title = GetServerName(),
-                Links = new[]
+                Links = new List<LinkDto>
                 {
-                    new LinkDto("self", baseUrl + "/opds/books/letter/" + filterStart + "?", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
-                    new LinkDto("start", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
-                    new LinkDto("up", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
-                    new LinkDto("search", baseUrl + "/opds/osd", "application/opensearchdescription+xml"),
-                    new LinkDto("search", baseUrl + "/opds/search/{searchTerms}", "application/atom+xml", "Search")
-                },
-                Entries = entries
-            };
-        }
+                    new(
+                        "subsection",
+                        baseUrl + "/opds/books/letter/00",
+                        "application/atom+xml;profile=opds-catalog")
+                }
+            }
+        };
 
-        /// <inheritdoc />
-        public string? GetBookImage(Guid bookId)
+        // TODO add entries based on library contents first char.
+        for (var i = 'A'; i <= 'Z'; i++)
         {
-            var item = _libraryManager.GetItemById(bookId);
-            return item?.PrimaryImagePath;
-        }
-
-        /// <inheritdoc />
-        public string? GetBook(Guid bookId)
-        {
-            var item = _libraryManager.GetItemById(bookId);
-            return item?.Path;
-        }
-
-        /// <inheritdoc />
-        public FeedDto SearchBooks(string baseUrl, Guid userId, string searchTerm)
-        {
-            var searchResult = _searchEngine.GetSearchHints(new SearchQuery
+            var letter = char.ToString(i);
+            entries.Add(new EntryDto(
+                letter,
+                "/opds/books/letter/" + letter,
+                utcNow)
             {
-                Limit = 100,
-                SearchTerm = searchTerm,
-                IncludeItemTypes = IncludeItemTypes,
-                UserId = userId
+                Links = new List<LinkDto>
+                {
+                    new(
+                        "subsection",
+                        baseUrl + "/opds/books/letter/" + letter,
+                        "application/atom+xml;profile=opds-catalog")
+                }
             });
+        }
 
-            var entries = new List<EntryDto>(searchResult.Items.Count);
-            foreach (var result in searchResult.Items)
+        return new FeedDto
+        {
+            Id = Guid.NewGuid().ToString(),
+            Author = PluginAuthor,
+            Title = GetServerName(),
+            Links = new[]
             {
-                if (result.Item is Book book)
+                new LinkDto("self", baseUrl + "/opds/books?", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("start", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("up", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("search", baseUrl + "/opds/osd", "application/opensearchdescription+xml"),
+                new LinkDto("search", baseUrl + "/opds/search/{searchTerms}", "application/atom+xml", "Search")
+            },
+            Entries = entries
+        };
+    }
+
+    /// <inheritdoc />
+    public FeedDto GetBookGenres(string baseUrl, Guid userId)
+    {
+        var feedDto = new FeedDto
+        {
+            Id = Guid.NewGuid().ToString(),
+            Author = PluginAuthor,
+            Title = GetServerName(),
+            Links = new[]
+            {
+                new LinkDto("self", baseUrl + "/opds/genres?", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("start", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("up", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("search", baseUrl + "/opds/osd", "application/opensearchdescription+xml"),
+                new LinkDto("search", baseUrl + "/opds/search/{searchTerms}", "application/atom+xml", "Search")
+            },
+            Entries = new List<EntryDto>()
+        };
+
+        var query = new InternalItemsQuery
+        {
+            IncludeItemTypes = BookItemTypes,
+            OrderBy = new (string, SortOrder)[] { ("SortName", SortOrder.Ascending) },
+            Recursive = true,
+            DtoOptions = new DtoOptions()
+        };
+
+        if (userId != Guid.Empty)
+        {
+            var user = _userManager.GetUserById(userId);
+            query.SetUser(user);
+        }
+
+        var utcNow = DateTime.UtcNow;
+        var queryResult = _libraryManager.GetGenres(query);
+        if (queryResult is not null)
+        {
+            foreach (var (item, _) in queryResult.Items)
+            {
+                feedDto.Entries.Add(new EntryDto(
+                    item.Name,
+                    "/opds/genres/" + item.Id,
+                    utcNow)
+                {
+                    Links = new List<LinkDto>
+                    {
+                        new(
+                            "subsection",
+                            baseUrl + "/opds/genres/" + item.Id,
+                            "application/atom+xml;profile=opds-catalog")
+                    }
+                });
+            }
+        }
+
+        return feedDto;
+    }
+
+    /// <inheritdoc />
+    public FeedDto GetAllBooks(string baseUrl, Guid userId, string filterStart)
+    {
+        if (filterStart.Length != 1)
+        {
+            filterStart = string.Empty;
+        }
+
+        var query = new InternalItemsQuery
+        {
+            IncludeItemTypes = BookItemTypes,
+            OrderBy = new (string, SortOrder)[] { ("SortName", SortOrder.Ascending) },
+            NameStartsWith = filterStart,
+            Recursive = true,
+            DtoOptions = new DtoOptions()
+        };
+
+        if (userId != Guid.Empty)
+        {
+            var user = _userManager.GetUserById(userId);
+            query.SetUser(user);
+        }
+
+        var items = _libraryManager.GetItemList(query);
+        var entries = new List<EntryDto>();
+        if (items is not null)
+        {
+            foreach (var item in items)
+            {
+                if (item is Book book)
                 {
                     entries.Add(CreateEntry(book, baseUrl));
                 }
             }
-
-            return new FeedDto
-            {
-                Id = Guid.NewGuid().ToString(),
-                Links = new[]
-                {
-                    new LinkDto("self", baseUrl + "/opds/search/" + searchTerm + "?", "application/atom+xml;profile=opds-catalog;kind=navigation"),
-                    new LinkDto("start", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;kind=navigation", "Start"),
-                    new LinkDto("up", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
-                    new LinkDto("search", baseUrl + "/opds/osd", "application/opensearchdescription+xml"),
-                    new LinkDto("search", baseUrl + "/opds/search/{searchTerms}", "application/atom+xml", "Search")
-                },
-                Title = GetServerName(),
-                Author = PluginAuthor,
-                Entries = entries
-            };
         }
 
-        /// <inheritdoc />
-        public OpenSearchDescriptionDto GetSearchDescription(string baseUrl)
+        return new FeedDto
         {
-            var dto = new OpenSearchDescriptionDto
+            Id = Guid.NewGuid().ToString(),
+            Author = PluginAuthor,
+            Title = GetServerName(),
+            Links = new[]
             {
-                Xmlns = "http://a9.com/-/spec/opensearch/1.1/",
-                Description = "Jellyfin eBook Catalog",
-                Developer = "Jellyfin",
-                Contact = "https://github.com/jellyfin/jellyfin-plugin-opds",
-                SyndicationRight = "open",
-                Language = "en-EN",
-                OutputEncoding = "UTF-8",
-                InputEncoding = "UTF-8",
-                ShortName = GetServerName(),
-                LongName = GetServerName(),
-                Url = new[]
-                {
-                    new OpenSearchUrlDto
-                    {
-                        Type = MediaTypeNames.Text.Html,
-                        Template = baseUrl + "/opds/search/{searchTerms}"
-                    },
-                    new OpenSearchUrlDto
-                    {
-                        Type = "application/atom+xml",
-                        Template = baseUrl + "/opds/search?query={searchTerms}"
-                    }
-                }
-            };
+                new LinkDto("self", baseUrl + "/opds/books/letter/" + filterStart + "?", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("start", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("up", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("search", baseUrl + "/opds/osd", "application/opensearchdescription+xml"),
+                new LinkDto("search", baseUrl + "/opds/search/{searchTerms}", "application/atom+xml", "Search")
+            },
+            Entries = entries
+        };
+    }
 
-            return dto;
+    /// <inheritdoc />
+    public FeedDto GetBooksByGenre(string baseUrl, Guid userId, Guid genreId)
+    {
+        var query = new InternalItemsQuery
+        {
+            IncludeItemTypes = BookItemTypes,
+            OrderBy = new (string, SortOrder)[] { ("SortName", SortOrder.Ascending) },
+            GenreIds = new[] { genreId },
+            DtoOptions = new DtoOptions()
+        };
+
+        if (userId != Guid.Empty)
+        {
+            var user = _userManager.GetUserById(userId);
+            query.SetUser(user);
         }
 
-        private string GetServerName()
+        var queryResult = _libraryManager.GetItemList(query);
+        var entries = new List<EntryDto>();
+        if (queryResult is not null)
         {
-            var serverName = _serverApplicationHost.FriendlyName;
-            return string.IsNullOrEmpty(serverName) ? "Jellyfin" : serverName;
-        }
-
-        private EntryDto CreateEntry(Book book, string baseUrl)
-        {
-            var entry = new EntryDto(
-                book.Name,
-                book.Id.ToString(),
-                book.DateModified)
+            foreach (var item in queryResult)
             {
-                Author = new AuthorDto
+                if (item is Book book)
                 {
-                    Name = book.GetParent().Name
-                },
-                Summary = book.Overview,
-                Links = new List<LinkDto>()
-            };
-
-            if (!string.IsNullOrEmpty(book.PrimaryImagePath))
-            {
-                var imageMimeType = MimeTypes.GetMimeType(book.PrimaryImagePath);
-                if (!string.IsNullOrEmpty(imageMimeType))
-                {
-                    entry.Links.Add(new ("http://opds-spec.org/image", baseUrl + "/opds/cover/" + book.Id, imageMimeType));
-                    entry.Links.Add(new ("http://opds-spec.org/image/thumbnail", baseUrl + "/opds/cover/" + book.Id, imageMimeType));
+                    entries.Add(CreateEntry(book, baseUrl));
                 }
             }
+        }
 
-            if (!string.IsNullOrEmpty(book.Path))
+        return new FeedDto
+        {
+            Id = Guid.NewGuid().ToString(),
+            Author = PluginAuthor,
+            Title = GetServerName(),
+            Links = new[]
             {
-                var bookMimeType = MimeTypes.GetMimeType(book.Path);
-                if (!string.IsNullOrEmpty(bookMimeType))
+                new LinkDto("self", baseUrl + "/opds/genres/" + genreId + "?", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("start", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("up", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("search", baseUrl + "/opds/osd", "application/opensearchdescription+xml"),
+                new LinkDto("search", baseUrl + "/opds/search/{searchTerms}", "application/atom+xml", "Search")
+            },
+            Entries = entries
+        };
+    }
+
+    /// <inheritdoc />
+    public string? GetBookImage(Guid bookId)
+    {
+        var item = _libraryManager.GetItemById(bookId);
+        return item?.PrimaryImagePath;
+    }
+
+    /// <inheritdoc />
+    public string? GetBook(Guid bookId)
+    {
+        var item = _libraryManager.GetItemById(bookId);
+        return item?.Path;
+    }
+
+    /// <inheritdoc />
+    public FeedDto SearchBooks(string baseUrl, Guid userId, string searchTerm)
+    {
+        var searchResult = _searchEngine.GetSearchHints(new SearchQuery
+        {
+            Limit = 100,
+            SearchTerm = searchTerm,
+            IncludeItemTypes = BookItemTypes,
+            UserId = userId
+        });
+
+        var entries = new List<EntryDto>(searchResult.Items.Count);
+        foreach (var result in searchResult.Items)
+        {
+            if (result.Item is Book book)
+            {
+                entries.Add(CreateEntry(book, baseUrl));
+            }
+        }
+
+        return new FeedDto
+        {
+            Id = Guid.NewGuid().ToString(),
+            Links = new[]
+            {
+                new LinkDto("self", baseUrl + "/opds/search/" + searchTerm + "?", "application/atom+xml;profile=opds-catalog;kind=navigation"),
+                new LinkDto("start", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;kind=navigation", "Start"),
+                new LinkDto("up", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("search", baseUrl + "/opds/osd", "application/opensearchdescription+xml"),
+                new LinkDto("search", baseUrl + "/opds/search/{searchTerms}", "application/atom+xml", "Search")
+            },
+            Title = GetServerName(),
+            Author = PluginAuthor,
+            Entries = entries
+        };
+    }
+
+    /// <inheritdoc />
+    public OpenSearchDescriptionDto GetSearchDescription(string baseUrl)
+    {
+        var dto = new OpenSearchDescriptionDto
+        {
+            Xmlns = "http://a9.com/-/spec/opensearch/1.1/",
+            Description = "Jellyfin eBook Catalog",
+            Developer = "Jellyfin",
+            Contact = "https://github.com/jellyfin/jellyfin-plugin-opds",
+            SyndicationRight = "open",
+            Language = "en-EN",
+            OutputEncoding = "UTF-8",
+            InputEncoding = "UTF-8",
+            ShortName = GetServerName(),
+            LongName = GetServerName(),
+            Url = new[]
+            {
+                new OpenSearchUrlDto
                 {
-                    entry.Links.Add(new ("http://opds-spec.org/acquisition", baseUrl + "/opds/download/" + book.Id, bookMimeType)
-                    {
-                        UpdateTime = book.DateModified,
-                        Length = book.Size
-                    });
+                    Type = MediaTypeNames.Text.Html,
+                    Template = baseUrl + "/opds/search/{searchTerms}"
+                },
+                new OpenSearchUrlDto
+                {
+                    Type = "application/atom+xml",
+                    Template = baseUrl + "/opds/search?query={searchTerms}"
                 }
             }
+        };
 
-            return entry;
+        return dto;
+    }
+
+    private string GetServerName()
+    {
+        var serverName = _serverApplicationHost.FriendlyName;
+        return string.IsNullOrEmpty(serverName) ? "Jellyfin" : serverName;
+    }
+
+    private EntryDto CreateEntry(Book book, string baseUrl)
+    {
+        var entry = new EntryDto(
+            book.Name,
+            book.Id.ToString(),
+            book.DateModified)
+        {
+            Author = new AuthorDto
+            {
+                Name = book.GetParent().Name
+            },
+            Summary = book.Overview,
+            Links = new List<LinkDto>()
+        };
+
+        if (!string.IsNullOrEmpty(book.PrimaryImagePath))
+        {
+            var imageMimeType = MimeTypes.GetMimeType(book.PrimaryImagePath);
+            if (!string.IsNullOrEmpty(imageMimeType))
+            {
+                entry.Links.Add(new("http://opds-spec.org/image", baseUrl + "/opds/cover/" + book.Id, imageMimeType));
+                entry.Links.Add(new("http://opds-spec.org/image/thumbnail", baseUrl + "/opds/cover/" + book.Id, imageMimeType));
+            }
         }
+
+        if (!string.IsNullOrEmpty(book.Path))
+        {
+            var bookMimeType = MimeTypes.GetMimeType(book.Path);
+            if (!string.IsNullOrEmpty(bookMimeType))
+            {
+                entry.Links.Add(new("http://opds-spec.org/acquisition", baseUrl + "/opds/download/" + book.Id, bookMimeType)
+                {
+                    UpdateTime = book.DateModified,
+                    Length = book.Size
+                });
+            }
+        }
+
+        return entry;
     }
 }
