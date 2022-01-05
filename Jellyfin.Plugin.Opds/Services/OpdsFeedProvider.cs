@@ -17,7 +17,7 @@ namespace Jellyfin.Plugin.Opds.Services;
 /// </summary>
 public class OpdsFeedProvider : IOpdsFeedProvider
 {
-    private static readonly string[] BookItemTypes = { nameof(Book) };
+    private static readonly BaseItemKind[] BookItemTypes = { BaseItemKind.Book };
 
     private static readonly AuthorDto PluginAuthor = new("Jellyfin", "https://github.com/jellyfin/jellyfin-plugin-opds");
 
