@@ -8,6 +8,7 @@ using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Net;
+using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Search;
 
 namespace Jellyfin.Plugin.Opds.Services;
@@ -48,6 +49,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
     /// <inheritdoc />
     public FeedDto GetFeeds(string baseUrl)
     {
+        var timestamp = DateTime.UtcNow;
         return new FeedDto
         {
             Id = Guid.NewGuid().ToString(),
@@ -66,7 +68,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
                     "Alphabetical Books",
                     "/opds/books",
                     new ContentDto("text", "Books sorted alphabetically"),
-                    DateTime.UtcNow)
+                    timestamp)
                 {
                     Links = new List<LinkDto>
                     {
@@ -74,14 +76,36 @@ public class OpdsFeedProvider : IOpdsFeedProvider
                     }
                 },
                 new(
+                    "Favorite Books",
+                    "/opds/books/favorite",
+                    new ContentDto("text", "Favorite books"),
+                    timestamp)
+                {
+                    Links = new List<LinkDto>
+                    {
+                        new(baseUrl + "/opds/books/favorite", "application/atom+xml;profile=opds-catalog")
+                    }
+                },
+                new(
                     "Genres",
                     "/opds/genres",
                     new ContentDto("text", "Book genres"),
-                    DateTime.UtcNow)
+                    timestamp)
                 {
                     Links = new List<LinkDto>
                     {
                         new(baseUrl + "/opds/genres", "application/atom+xml;profile=opds-catalog")
+                    }
+                },
+                new(
+                    "Recently Added",
+                    "/opds/books/recentlyadded",
+                    new ContentDto("text", "Recently added books"),
+                    timestamp)
+                {
+                    Links = new List<LinkDto>
+                    {
+                        new(baseUrl + "/opds/books/recentlyadded", "application/atom+xml;profile=opds-catalog")
                     }
                 }
             }
@@ -167,7 +191,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         var query = new InternalItemsQuery
         {
             IncludeItemTypes = BookItemTypes,
-            OrderBy = new (string, SortOrder)[] { ("SortName", SortOrder.Ascending) },
+            OrderBy = new (string, SortOrder)[] { (ItemSortBy.SortName, SortOrder.Ascending) },
             Recursive = true,
             DtoOptions = new DtoOptions()
         };
@@ -204,6 +228,105 @@ public class OpdsFeedProvider : IOpdsFeedProvider
     }
 
     /// <inheritdoc />
+    public FeedDto GetRecentlyAdded(string baseUrl, Guid userId)
+    {
+        var feedDto = new FeedDto
+        {
+            Id = Guid.NewGuid().ToString(),
+            Author = PluginAuthor,
+            Title = GetServerName(),
+            Links = new[]
+            {
+                new LinkDto("self", baseUrl + "/opds/recentlyadded?", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("start", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("up", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("search", baseUrl + "/opds/osd", "application/opensearchdescription+xml"),
+                new LinkDto("search", baseUrl + "/opds/search/{searchTerms}", "application/atom+xml", "Search")
+            },
+            Entries = new List<EntryDto>()
+        };
+
+        var query = new InternalItemsQuery
+        {
+            IncludeItemTypes = BookItemTypes,
+            OrderBy = new (string, SortOrder)[] { (ItemSortBy.DateCreated, SortOrder.Descending) },
+            Recursive = true,
+            DtoOptions = new DtoOptions(),
+            Limit = 25
+        };
+
+        if (userId != Guid.Empty)
+        {
+            var user = _userManager.GetUserById(userId);
+            query.SetUser(user);
+        }
+
+        var queryResult = _libraryManager.GetItemsResult(query);
+        if (queryResult is not null)
+        {
+            foreach (var item in queryResult.Items)
+            {
+                if (item is Book book)
+                {
+                    feedDto.Entries.Add(CreateEntry(book, baseUrl));
+                }
+            }
+        }
+
+        return feedDto;
+    }
+
+    /// <inheritdoc />
+    public FeedDto GetFavoriteBooks(string baseUrl, Guid userId)
+    {
+        var entries = new List<EntryDto>();
+
+        // Favorites require a user to be set, so just return empty list otherwise.
+        if (userId != Guid.Empty)
+        {
+            var query = new InternalItemsQuery
+            {
+                IncludeItemTypes = BookItemTypes,
+                OrderBy = new (string, SortOrder)[] { (ItemSortBy.SortName, SortOrder.Ascending) },
+                IsFavorite = true,
+                Recursive = true,
+                DtoOptions = new DtoOptions()
+            };
+
+            var user = _userManager.GetUserById(userId);
+            query.SetUser(user);
+
+            var items = _libraryManager.GetItemList(query);
+            if (items is not null)
+            {
+                foreach (var item in items)
+                {
+                    if (item is Book book)
+                    {
+                        entries.Add(CreateEntry(book, baseUrl));
+                    }
+                }
+            }
+        }
+
+        return new FeedDto
+        {
+            Id = Guid.NewGuid().ToString(),
+            Author = PluginAuthor,
+            Title = GetServerName(),
+            Links = new[]
+            {
+                new LinkDto("self", baseUrl + "/opds/books/favorite", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("start", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("up", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+                new LinkDto("search", baseUrl + "/opds/osd", "application/opensearchdescription+xml"),
+                new LinkDto("search", baseUrl + "/opds/search/{searchTerms}", "application/atom+xml", "Search")
+            },
+            Entries = entries
+        };
+    }
+
+    /// <inheritdoc />
     public FeedDto GetAllBooks(string baseUrl, Guid userId, string filterStart)
     {
         if (filterStart.Length != 1)
@@ -214,7 +337,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         var query = new InternalItemsQuery
         {
             IncludeItemTypes = BookItemTypes,
-            OrderBy = new (string, SortOrder)[] { ("SortName", SortOrder.Ascending) },
+            OrderBy = new (string, SortOrder)[] { (ItemSortBy.SortName, SortOrder.Ascending) },
             NameStartsWith = filterStart,
             Recursive = true,
             DtoOptions = new DtoOptions()
@@ -262,7 +385,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         var query = new InternalItemsQuery
         {
             IncludeItemTypes = BookItemTypes,
-            OrderBy = new (string, SortOrder)[] { ("SortName", SortOrder.Ascending) },
+            OrderBy = new (string, SortOrder)[] { (ItemSortBy.SortName, SortOrder.Ascending) },
             GenreIds = new[] { genreId },
             DtoOptions = new DtoOptions()
         };

@@ -56,7 +56,7 @@ public class OpdsApi : ControllerBase
     /// Gets the list of letters to filter by.
     /// </summary>
     /// <returns>The alphabetical feed xml.</returns>
-    [HttpGet("books")]
+    [HttpGet("Books")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetAlphabeticalRootFeed()
     {
@@ -69,7 +69,7 @@ public class OpdsApi : ControllerBase
     /// Gets the list of genres.
     /// </summary>
     /// <returns>The genres feed xml.</returns>
-    [HttpGet("genres")]
+    [HttpGet("Genres")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetGenres()
     {
@@ -79,11 +79,37 @@ public class OpdsApi : ControllerBase
     }
 
     /// <summary>
+    /// Gets the list of recently added books.
+    /// </summary>
+    /// <returns>The recently added feed xml.</returns>
+    [HttpGet("Books/RecentlyAdded")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult> GetRecentlyAdded()
+    {
+        var userId = await AuthorizeAsync().ConfigureAwait(false);
+        var feeds = _opdsFeedProvider.GetRecentlyAdded(Request.PathBase, userId);
+        return BuildOutput(feeds);
+    }
+
+    /// <summary>
+    /// Gets the list of favorite books.
+    /// </summary>
+    /// <returns>The recently added feed xml.</returns>
+    [HttpGet("Books/Favorite")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult> GetFavoriteBooks()
+    {
+        var userId = await AuthorizeAsync().ConfigureAwait(false);
+        var feeds = _opdsFeedProvider.GetFavoriteBooks(Request.PathBase, userId);
+        return BuildOutput(feeds);
+    }
+
+    /// <summary>
     /// Gets the list of letters to filter by.
     /// </summary>
     /// <param name="startFilter">The start filter.</param>
     /// <returns>The alphabetical feed xml.</returns>
-    [HttpGet("books/letter/{startFilter}")]
+    [HttpGet("Books/Letter/{startFilter}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetAlphabeticalFeed([FromRoute] string startFilter)
     {
@@ -97,7 +123,7 @@ public class OpdsApi : ControllerBase
     /// </summary>
     /// <param name="genreId">The genre id.</param>
     /// <returns>The books feed xml.</returns>
-    [HttpGet("genres/{genreId}")]
+    [HttpGet("Genres/{genreId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetBooksByGenre([FromRoute] Guid genreId)
     {
@@ -111,7 +137,7 @@ public class OpdsApi : ControllerBase
     /// </summary>
     /// <param name="searchTerms">The search terms.</param>
     /// <returns>The search feed xml.</returns>
-    [HttpGet("search/{searchTerms}")]
+    [HttpGet("Search/{searchTerms}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> SearchBookFromRoute(string searchTerms)
     {
@@ -125,7 +151,7 @@ public class OpdsApi : ControllerBase
     /// </summary>
     /// <param name="searchTerms">The search terms.</param>
     /// <returns>The search feed xml.</returns>
-    [HttpGet("search")]
+    [HttpGet("Search")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> SearchBookFromQuery([FromQuery] string searchTerms)
     {
@@ -152,7 +178,7 @@ public class OpdsApi : ControllerBase
     /// </summary>
     /// <param name="bookId">The book id.</param>
     /// <returns>The book image.</returns>
-    [HttpGet("cover/{bookId}")]
+    [HttpGet("Cover/{bookId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> GetBookImage(Guid bookId)
@@ -172,7 +198,7 @@ public class OpdsApi : ControllerBase
     /// </summary>
     /// <param name="bookId">The book id.</param>
     /// <returns>The book image.</returns>
-    [HttpGet("download/{bookId}")]
+    [HttpGet("Download/{bookId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> DownloadBook(Guid bookId)
@@ -189,15 +215,16 @@ public class OpdsApi : ControllerBase
 
     private async Task<Guid> AuthorizeAsync()
     {
-        if (OpdsPlugin.Instance!.Configuration.AllowAnonymousAccess)
-        {
-            // Endpoints don't require auth, allow all requests.
-            return Guid.Empty;
-        }
+        var allowAnonymous = OpdsPlugin.Instance!.Configuration.AllowAnonymousAccess;
 
         Request.Headers.TryGetValue(HeaderNames.Authorization, out var authorizationHeader);
         if (authorizationHeader.Count == 0)
         {
+            if (allowAnonymous)
+            {
+                return Guid.Empty;
+            }
+
             throw new AuthenticationException("Basic Authentication is required");
         }
 
@@ -205,6 +232,11 @@ public class OpdsApi : ControllerBase
         if (string.IsNullOrEmpty(authenticationHeaderValue.Parameter)
             || !string.Equals("Basic", authenticationHeaderValue.Scheme, StringComparison.OrdinalIgnoreCase))
         {
+            if (allowAnonymous)
+            {
+                return Guid.Empty;
+            }
+
             throw new AuthenticationException("Basic Authentication is required");
         }
 
@@ -212,6 +244,11 @@ public class OpdsApi : ControllerBase
         var credentialSplitIndex = credentialString.IndexOf(':', StringComparison.Ordinal);
         if (credentialSplitIndex < 0)
         {
+            if (allowAnonymous)
+            {
+                return Guid.Empty;
+            }
+
             throw new AuthenticationException("Basic Authentication is required");
         }
 
@@ -228,6 +265,11 @@ public class OpdsApi : ControllerBase
 
         if (user is null)
         {
+            if (allowAnonymous)
+            {
+                return Guid.Empty;
+            }
+
             throw new AuthenticationException("Basic Authentication is required");
         }
 

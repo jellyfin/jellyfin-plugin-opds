@@ -31,6 +31,22 @@ public interface IOpdsFeedProvider
     FeedDto GetBookGenres(string baseUrl, Guid userId);
 
     /// <summary>
+    /// Gets the list of recently added books.
+    /// </summary>
+    /// <param name="baseUrl">The request path base.</param>
+    /// <param name="userId">The user id to filter by.</param>
+    /// <returns>The list of recently added books.</returns>
+    FeedDto GetRecentlyAdded(string baseUrl, Guid userId);
+
+    /// <summary>
+    /// Gets the list of favorite books.
+    /// </summary>
+    /// <param name="baseUrl">The request path base.</param>
+    /// <param name="userId">The user id to filter by.</param>
+    /// <returns>The list of favorite books.</returns>
+    FeedDto GetFavoriteBooks(string baseUrl, Guid userId);
+
+    /// <summary>
     /// Get the list of books matching the filter.
     /// </summary>
     /// <param name="baseUrl">The request path base.</param>
