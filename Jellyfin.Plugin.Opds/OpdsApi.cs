@@ -23,8 +23,6 @@ namespace Jellyfin.Plugin.Opds;
 [Route("opds")]
 public class OpdsApi : ControllerBase
 {
-    private const string AuthHeaderKey = "WWW-Authenticate";
-    private const string AuthHeaderValue = "Basic";
     private readonly IUserManager _userManager;
     private readonly IOpdsFeedProvider _opdsFeedProvider;
 
@@ -49,17 +47,9 @@ public class OpdsApi : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetRootFeed()
     {
-        try
-        {
-            await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.GetFeeds(Request.PathBase);
-            return BuildOutput(feeds);
-        }
-        catch (AuthenticationException)
-        {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
-            return StatusCode(StatusCodes.Status401Unauthorized);
-        }
+        await AuthorizeAsync().ConfigureAwait(false);
+        var feeds = _opdsFeedProvider.GetFeeds(Request.PathBase);
+        return BuildOutput(feeds);
     }
 
     /// <summary>
@@ -70,17 +60,9 @@ public class OpdsApi : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetAlphabeticalRootFeed()
     {
-        try
-        {
-            await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.GetAlphabeticalFeed(Request.PathBase);
-            return BuildOutput(feeds);
-        }
-        catch (AuthenticationException)
-        {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
-            return StatusCode(StatusCodes.Status401Unauthorized);
-        }
+        await AuthorizeAsync().ConfigureAwait(false);
+        var feeds = _opdsFeedProvider.GetAlphabeticalFeed(Request.PathBase);
+        return BuildOutput(feeds);
     }
 
     /// <summary>
@@ -91,17 +73,9 @@ public class OpdsApi : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetGenres()
     {
-        try
-        {
-            var userId = await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.GetBookGenres(Request.PathBase, userId);
-            return BuildOutput(feeds);
-        }
-        catch (AuthenticationException)
-        {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
-            return StatusCode(StatusCodes.Status401Unauthorized);
-        }
+        var userId = await AuthorizeAsync().ConfigureAwait(false);
+        var feeds = _opdsFeedProvider.GetBookGenres(Request.PathBase, userId);
+        return BuildOutput(feeds);
     }
 
     /// <summary>
@@ -112,17 +86,9 @@ public class OpdsApi : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetRecentlyAdded()
     {
-        try
-        {
-            var userId = await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.GetRecentlyAdded(Request.PathBase, userId);
-            return BuildOutput(feeds);
-        }
-        catch (AuthenticationException)
-        {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
-            return StatusCode(StatusCodes.Status401Unauthorized);
-        }
+        var userId = await AuthorizeAsync().ConfigureAwait(false);
+        var feeds = _opdsFeedProvider.GetRecentlyAdded(Request.PathBase, userId);
+        return BuildOutput(feeds);
     }
 
     /// <summary>
@@ -133,17 +99,9 @@ public class OpdsApi : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetFavoriteBooks()
     {
-        try
-        {
-            var userId = await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.GetFavoriteBooks(Request.PathBase, userId);
-            return BuildOutput(feeds);
-        }
-        catch (AuthenticationException)
-        {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
-            return StatusCode(StatusCodes.Status401Unauthorized);
-        }
+        var userId = await AuthorizeAsync().ConfigureAwait(false);
+        var feeds = _opdsFeedProvider.GetFavoriteBooks(Request.PathBase, userId);
+        return BuildOutput(feeds);
     }
 
     /// <summary>
@@ -155,17 +113,9 @@ public class OpdsApi : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetAlphabeticalFeed([FromRoute] string startFilter)
     {
-        try
-        {
-            var userId = await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.GetAllBooks(Request.PathBase, userId, startFilter);
-            return BuildOutput(feeds);
-        }
-        catch (AuthenticationException)
-        {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
-            return StatusCode(StatusCodes.Status401Unauthorized);
-        }
+        var userId = await AuthorizeAsync().ConfigureAwait(false);
+        var feeds = _opdsFeedProvider.GetAllBooks(Request.PathBase, userId, startFilter);
+        return BuildOutput(feeds);
     }
 
     /// <summary>
@@ -177,17 +127,9 @@ public class OpdsApi : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetBooksByGenre([FromRoute] Guid genreId)
     {
-        try
-        {
-            var userId = await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.GetBooksByGenre(Request.PathBase, userId, genreId);
-            return BuildOutput(feeds);
-        }
-        catch (AuthenticationException)
-        {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
-            return StatusCode(StatusCodes.Status401Unauthorized);
-        }
+        var userId = await AuthorizeAsync().ConfigureAwait(false);
+        var feeds = _opdsFeedProvider.GetBooksByGenre(Request.PathBase, userId, genreId);
+        return BuildOutput(feeds);
     }
 
     /// <summary>
@@ -199,17 +141,9 @@ public class OpdsApi : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> SearchBookFromRoute(string searchTerms)
     {
-        try
-        {
-            var userId = await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.SearchBooks(Request.PathBase, userId, searchTerms);
-            return BuildOutput(feeds);
-        }
-        catch (AuthenticationException)
-        {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
-            return StatusCode(StatusCodes.Status401Unauthorized);
-        }
+        var userId = await AuthorizeAsync().ConfigureAwait(false);
+        var feeds = _opdsFeedProvider.SearchBooks(Request.PathBase, userId, searchTerms);
+        return BuildOutput(feeds);
     }
 
     /// <summary>
@@ -221,17 +155,9 @@ public class OpdsApi : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> SearchBookFromQuery([FromQuery] string searchTerms)
     {
-        try
-        {
-            var userId = await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.SearchBooks(Request.PathBase, userId, searchTerms);
-            return BuildOutput(feeds);
-        }
-        catch (AuthenticationException)
-        {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
-            return StatusCode(StatusCodes.Status401Unauthorized);
-        }
+        var userId = await AuthorizeAsync().ConfigureAwait(false);
+        var feeds = _opdsFeedProvider.SearchBooks(Request.PathBase, userId, searchTerms);
+        return BuildOutput(feeds);
     }
 
     /// <summary>
@@ -242,17 +168,9 @@ public class OpdsApi : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetSearchDescription()
     {
-        try
-        {
-            await AuthorizeAsync().ConfigureAwait(false);
-            var searchDescription = _opdsFeedProvider.GetSearchDescription(Request.PathBase);
-            return BuildOutput(searchDescription);
-        }
-        catch (AuthenticationException)
-        {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
-            return StatusCode(StatusCodes.Status401Unauthorized);
-        }
+        await AuthorizeAsync().ConfigureAwait(false);
+        var searchDescription = _opdsFeedProvider.GetSearchDescription(Request.PathBase);
+        return BuildOutput(searchDescription);
     }
 
     /// <summary>
@@ -265,22 +183,14 @@ public class OpdsApi : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> GetBookImage(Guid bookId)
     {
-        try
+        await AuthorizeAsync().ConfigureAwait(false);
+        var imagePath = _opdsFeedProvider.GetBookImage(bookId);
+        if (string.IsNullOrEmpty(imagePath))
         {
-            await AuthorizeAsync().ConfigureAwait(false);
-            var imagePath = _opdsFeedProvider.GetBookImage(bookId);
-            if (string.IsNullOrEmpty(imagePath))
-            {
-                return NotFound();
-            }
+            return NotFound();
+        }
 
-            return PhysicalFile(imagePath, MimeTypes.GetMimeType(imagePath));
-        }
-        catch (AuthenticationException)
-        {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
-            return StatusCode(StatusCodes.Status401Unauthorized);
-        }
+        return PhysicalFile(imagePath, MimeTypes.GetMimeType(imagePath));
     }
 
     /// <summary>
@@ -293,22 +203,14 @@ public class OpdsApi : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> DownloadBook(Guid bookId)
     {
-        try
+        await AuthorizeAsync().ConfigureAwait(false);
+        var bookPath = _opdsFeedProvider.GetBook(bookId);
+        if (string.IsNullOrEmpty(bookPath))
         {
-            await AuthorizeAsync().ConfigureAwait(false);
-            var bookPath = _opdsFeedProvider.GetBook(bookId);
-            if (string.IsNullOrEmpty(bookPath))
-            {
-                return NotFound();
-            }
+            return NotFound();
+        }
 
-            return PhysicalFile(bookPath, MimeTypes.GetMimeType(bookPath));
-        }
-        catch (AuthenticationException)
-        {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
-            return StatusCode(StatusCodes.Status401Unauthorized);
-        }
+        return PhysicalFile(bookPath, MimeTypes.GetMimeType(bookPath));
     }
 
     private async Task<Guid> AuthorizeAsync()
