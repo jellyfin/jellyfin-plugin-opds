@@ -24,7 +24,7 @@ namespace Jellyfin.Plugin.Opds;
 public class OpdsApi : ControllerBase
 {
     private const string AuthHeaderKey = "WWW-Authenticate";
-    private const string AuthHeaderValue = "Basic";
+    private const string AuthHeaderValue = "Basic realm=\"Login Required\"";
     private readonly IUserManager _userManager;
     private readonly IOpdsFeedProvider _opdsFeedProvider;
 
