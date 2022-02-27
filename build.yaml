@@ -2,7 +2,7 @@ name: "OPDS"
 guid: "F30880AE-3365-449E-B9E6-BF133C8401B0"
 imageUrl: "https://repo.jellyfin.org/releases/plugin/images/jellyfin-plugin-opds.png"
 version: "3"
-targetAbi: "10.8.0.0"
+targetAbi: "10.7.7.0"
 framework: "net6.0"
 owner: "jellyfin"
 overview: "Provides an OPDS book feed"
@@ -14,9 +14,8 @@ artifacts:
   - "Jellyfin.Plugin.Opds.dll"
 changelog: |2-
   ### New features and improvements ###
-  - Add Genre search (#9) @crobibero
-  - Use Request.PathBase to get actual baseUrl (#8) @crobibero
+  - Add WWW-Authenticate header to unauthorized response (#14) @crobibero
+  - Add Favorites, RecentlyAdded (#12) @crobibero
 
-  ### Code or Repo Maintenance ###
-  - Use BaseItemKind (#10) @crobibero
-  - Update ruleset, fix build, fix ordering (#3) @crobibero
+  ### CI & build changes ###
+  - ci: migrate to centralized Plugin CI workflows (#15) @crobibero
