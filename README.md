@@ -17,3 +17,5 @@
 </p>
 
 Feed is located at `${baseUrl}/opds`
+
+Authenticated feed is accessed as `https://user:pass@${baseUrl}/opds`
