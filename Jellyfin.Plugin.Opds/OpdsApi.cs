@@ -302,7 +302,8 @@ public class OpdsApi : ControllerBase
                 return NotFound();
             }
 
-            return PhysicalFile(bookPath, MimeTypes.GetMimeType(bookPath));
+            var fileName = Path.GetFileName(bookPath);
+            return PhysicalFile(bookPath, MimeTypes.GetMimeType(bookPath), fileName);
         }
         catch (AuthenticationException)
         {
