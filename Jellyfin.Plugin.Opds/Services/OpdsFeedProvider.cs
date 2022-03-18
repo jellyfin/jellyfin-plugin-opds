@@ -60,7 +60,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
                 new LinkDto("search", baseUrl + "/opds/osd", "application/opensearchdescription+xml"),
                 new LinkDto("search", baseUrl + "/opds/search/{searchTerms}", "application/atom+xml", "Search")
             },
-            Title = GetServerName(),
+            Title = GetFeedName("Feeds"),
             Author = PluginAuthor,
             Entries = new List<EntryDto>
             {
@@ -156,7 +156,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         {
             Id = Guid.NewGuid().ToString(),
             Author = PluginAuthor,
-            Title = GetServerName(),
+            Title = GetFeedName("Alphabetical"),
             Links = new[]
             {
                 new LinkDto("self", baseUrl + "/opds/books?", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
@@ -176,7 +176,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         {
             Id = Guid.NewGuid().ToString(),
             Author = PluginAuthor,
-            Title = GetServerName(),
+            Title = GetFeedName("Genres"),
             Links = new[]
             {
                 new LinkDto("self", baseUrl + "/opds/genres?", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
@@ -234,7 +234,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         {
             Id = Guid.NewGuid().ToString(),
             Author = PluginAuthor,
-            Title = GetServerName(),
+            Title = GetFeedName("Recently Added"),
             Links = new[]
             {
                 new LinkDto("self", baseUrl + "/opds/recentlyadded?", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
@@ -313,7 +313,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         {
             Id = Guid.NewGuid().ToString(),
             Author = PluginAuthor,
-            Title = GetServerName(),
+            Title = GetFeedName("Favorites"),
             Links = new[]
             {
                 new LinkDto("self", baseUrl + "/opds/books/favorite", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
@@ -362,11 +362,15 @@ public class OpdsFeedProvider : IOpdsFeedProvider
             }
         }
 
+        var title = string.IsNullOrEmpty(filterStart)
+            ? "Books"
+            : "Books - " + filterStart;
+
         return new FeedDto
         {
             Id = Guid.NewGuid().ToString(),
             Author = PluginAuthor,
-            Title = GetServerName(),
+            Title = GetFeedName(title),
             Links = new[]
             {
                 new LinkDto("self", baseUrl + "/opds/books/letter/" + filterStart + "?", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
@@ -409,11 +413,13 @@ public class OpdsFeedProvider : IOpdsFeedProvider
             }
         }
 
+        var genre = _libraryManager.GetItemById(genreId);
+
         return new FeedDto
         {
             Id = Guid.NewGuid().ToString(),
             Author = PluginAuthor,
-            Title = GetServerName(),
+            Title = GetFeedName(genre?.Name ?? "Genre"),
             Links = new[]
             {
                 new LinkDto("self", baseUrl + "/opds/genres/" + genreId + "?", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
@@ -471,7 +477,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
                 new LinkDto("search", baseUrl + "/opds/osd", "application/opensearchdescription+xml"),
                 new LinkDto("search", baseUrl + "/opds/search/{searchTerms}", "application/atom+xml", "Search")
             },
-            Title = GetServerName(),
+            Title = GetFeedName(searchTerm),
             Author = PluginAuthor,
             Entries = entries
         };
@@ -490,8 +496,8 @@ public class OpdsFeedProvider : IOpdsFeedProvider
             Language = "en-EN",
             OutputEncoding = "UTF-8",
             InputEncoding = "UTF-8",
-            ShortName = GetServerName(),
-            LongName = GetServerName(),
+            ShortName = GetFeedName("Search"),
+            LongName = GetFeedName("Search"),
             Url = new[]
             {
                 new OpenSearchUrlDto
@@ -510,10 +516,10 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         return dto;
     }
 
-    private string GetServerName()
+    private string GetFeedName(string title)
     {
         var serverName = _serverApplicationHost.FriendlyName;
-        return string.IsNullOrEmpty(serverName) ? "Jellyfin" : serverName;
+        return title + " - " + (string.IsNullOrEmpty(serverName) ? "Jellyfin" : serverName);
     }
 
     private EntryDto CreateEntry(Book book, string baseUrl)
