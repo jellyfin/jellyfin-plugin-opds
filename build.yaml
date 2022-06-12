@@ -1,7 +1,7 @@
 name: "OPDS"
 guid: "F30880AE-3365-449E-B9E6-BF133C8401B0"
 imageUrl: "https://repo.jellyfin.org/releases/plugin/images/jellyfin-plugin-opds.png"
-version: "5"
+version: 5
 targetAbi: "10.8.0.0"
 framework: "net6.0"
 owner: "jellyfin"
@@ -13,9 +13,13 @@ category: "General"
 artifacts:
   - "Jellyfin.Plugin.Opds.dll"
 changelog: |-
+  - chore(deps): update dependency stylecop.analyzers to v1.2.0-beta.435 (#30) @renovate
+
   ### New features and improvements ###
-  - Add WWW-Authenticate header to unauthorized response (#14) @crobibero
-  - Add Favorites, RecentlyAdded (#12) @crobibero
+  - Set Content-Disposition header when downloading book (#24) @crobibero
+
+  ### Code or Repo Maintenance ###
+  - Minor update to include authenticated feeds. (#21) @adamshand
 
   ### CI & build changes ###
-  - ci: migrate to centralized Plugin CI workflows (#15) @crobibero
+  - fix: meta ci workflows (#28) @h1dden-da3m0n
