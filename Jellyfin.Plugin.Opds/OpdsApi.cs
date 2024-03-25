@@ -35,7 +35,7 @@ public class OpdsApi : ControllerBase
     /// <param name="opdsFeedProvider">The opds feed provider.</param>
     public OpdsApi(
         IUserManager userManager,
-        OpdsFeedProvider opdsFeedProvider)
+        IOpdsFeedProvider opdsFeedProvider)
     {
         _userManager = userManager;
         _opdsFeedProvider = opdsFeedProvider;
@@ -57,7 +57,7 @@ public class OpdsApi : ControllerBase
         }
         catch (AuthenticationException)
         {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
+            Response.Headers.Append(AuthHeaderKey, AuthHeaderValue);
             return StatusCode(StatusCodes.Status401Unauthorized);
         }
     }
@@ -78,7 +78,7 @@ public class OpdsApi : ControllerBase
         }
         catch (AuthenticationException)
         {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
+            Response.Headers.Append(AuthHeaderKey, AuthHeaderValue);
             return StatusCode(StatusCodes.Status401Unauthorized);
         }
     }
@@ -99,7 +99,7 @@ public class OpdsApi : ControllerBase
         }
         catch (AuthenticationException)
         {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
+            Response.Headers.Append(AuthHeaderKey, AuthHeaderValue);
             return StatusCode(StatusCodes.Status401Unauthorized);
         }
     }
@@ -120,7 +120,7 @@ public class OpdsApi : ControllerBase
         }
         catch (AuthenticationException)
         {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
+            Response.Headers.Append(AuthHeaderKey, AuthHeaderValue);
             return StatusCode(StatusCodes.Status401Unauthorized);
         }
     }
@@ -141,7 +141,7 @@ public class OpdsApi : ControllerBase
         }
         catch (AuthenticationException)
         {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
+            Response.Headers.Append(AuthHeaderKey, AuthHeaderValue);
             return StatusCode(StatusCodes.Status401Unauthorized);
         }
     }
@@ -163,7 +163,7 @@ public class OpdsApi : ControllerBase
         }
         catch (AuthenticationException)
         {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
+            Response.Headers.Append(AuthHeaderKey, AuthHeaderValue);
             return StatusCode(StatusCodes.Status401Unauthorized);
         }
     }
@@ -185,7 +185,7 @@ public class OpdsApi : ControllerBase
         }
         catch (AuthenticationException)
         {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
+            Response.Headers.Append(AuthHeaderKey, AuthHeaderValue);
             return StatusCode(StatusCodes.Status401Unauthorized);
         }
     }
@@ -207,7 +207,7 @@ public class OpdsApi : ControllerBase
         }
         catch (AuthenticationException)
         {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
+            Response.Headers.Append(AuthHeaderKey, AuthHeaderValue);
             return StatusCode(StatusCodes.Status401Unauthorized);
         }
     }
@@ -229,7 +229,7 @@ public class OpdsApi : ControllerBase
         }
         catch (AuthenticationException)
         {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
+            Response.Headers.Append(AuthHeaderKey, AuthHeaderValue);
             return StatusCode(StatusCodes.Status401Unauthorized);
         }
     }
@@ -250,7 +250,7 @@ public class OpdsApi : ControllerBase
         }
         catch (AuthenticationException)
         {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
+            Response.Headers.Append(AuthHeaderKey, AuthHeaderValue);
             return StatusCode(StatusCodes.Status401Unauthorized);
         }
     }
@@ -278,7 +278,7 @@ public class OpdsApi : ControllerBase
         }
         catch (AuthenticationException)
         {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
+            Response.Headers.Append(AuthHeaderKey, AuthHeaderValue);
             return StatusCode(StatusCodes.Status401Unauthorized);
         }
     }
@@ -307,7 +307,7 @@ public class OpdsApi : ControllerBase
         }
         catch (AuthenticationException)
         {
-            Response.Headers.Add(AuthHeaderKey, AuthHeaderValue);
+            Response.Headers.Append(AuthHeaderKey, AuthHeaderValue);
             return StatusCode(StatusCodes.Status401Unauthorized);
         }
     }
@@ -317,7 +317,7 @@ public class OpdsApi : ControllerBase
         var allowAnonymous = OpdsPlugin.Instance!.Configuration.AllowAnonymousAccess;
 
         Request.Headers.TryGetValue(HeaderNames.Authorization, out var authorizationHeader);
-        if (authorizationHeader.Count == 0)
+        if (string.IsNullOrEmpty(authorizationHeader) || authorizationHeader.Count == 0)
         {
             if (allowAnonymous)
             {
@@ -327,7 +327,7 @@ public class OpdsApi : ControllerBase
             throw new AuthenticationException("Basic Authentication is required");
         }
 
-        var authenticationHeaderValue = AuthenticationHeaderValue.Parse(authorizationHeader);
+        var authenticationHeaderValue = AuthenticationHeaderValue.Parse(authorizationHeader!);
         if (string.IsNullOrEmpty(authenticationHeaderValue.Parameter)
             || !string.Equals("Basic", authenticationHeaderValue.Scheme, StringComparison.OrdinalIgnoreCase))
         {
@@ -358,7 +358,7 @@ public class OpdsApi : ControllerBase
                 username,
                 password,
                 string.Empty,
-                HttpContext.GetNormalizedRemoteIp().ToString(),
+                HttpContext.GetNormalizedRemoteIP().ToString(),
                 true)
             .ConfigureAwait(false);
 

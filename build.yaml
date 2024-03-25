@@ -2,8 +2,8 @@ name: "OPDS"
 guid: "F30880AE-3365-449E-B9E6-BF133C8401B0"
 imageUrl: "https://repo.jellyfin.org/releases/plugin/images/jellyfin-plugin-opds.png"
 version: "5"
-targetAbi: "10.8.0.0"
-framework: "net6.0"
+targetAbi: "10.9.0.0"
+framework: "net8.0"
 owner: "jellyfin"
 overview: "Provides an OPDS book feed"
 description: >
@@ -13,9 +13,3 @@ category: "General"
 artifacts:
   - "Jellyfin.Plugin.Opds.dll"
 changelog: |-
-  ### New features and improvements ###
-  - Add WWW-Authenticate header to unauthorized response (#14) @crobibero
-  - Add Favorites, RecentlyAdded (#12) @crobibero
-
-  ### CI & build changes ###
-  - ci: migrate to centralized Plugin CI workflows (#15) @crobibero
