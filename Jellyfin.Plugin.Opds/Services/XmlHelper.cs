@@ -20,15 +20,8 @@ public static class XmlHelper
     /// <returns>The created serializer.</returns>
     public static XmlSerializer Create(Type type, string defaultNamespace)
     {
-        if (type is null)
-        {
-            throw new ArgumentNullException(nameof(type));
-        }
-
-        if (string.IsNullOrEmpty(defaultNamespace))
-        {
-            throw new ArgumentNullException(nameof(defaultNamespace));
-        }
+        ArgumentNullException.ThrowIfNull(type);
+        ArgumentException.ThrowIfNullOrEmpty(defaultNamespace);
 
         var key = string.Format(CultureInfo.InvariantCulture, "{0}:{1}", type.FullName!, defaultNamespace);
 

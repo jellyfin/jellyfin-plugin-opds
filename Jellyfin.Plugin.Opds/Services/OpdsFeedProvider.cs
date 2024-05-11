@@ -191,7 +191,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         var query = new InternalItemsQuery
         {
             IncludeItemTypes = BookItemTypes,
-            OrderBy = new (string, SortOrder)[] { (ItemSortBy.SortName, SortOrder.Ascending) },
+            OrderBy = new (ItemSortBy, SortOrder)[] { (ItemSortBy.SortName, SortOrder.Ascending) },
             Recursive = true,
             DtoOptions = new DtoOptions()
         };
@@ -199,7 +199,10 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         if (userId != Guid.Empty)
         {
             var user = _userManager.GetUserById(userId);
-            query.SetUser(user);
+            if (user is not null)
+            {
+                query.SetUser(user);
+            }
         }
 
         var utcNow = DateTime.UtcNow;
@@ -249,7 +252,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         var query = new InternalItemsQuery
         {
             IncludeItemTypes = BookItemTypes,
-            OrderBy = new (string, SortOrder)[] { (ItemSortBy.DateCreated, SortOrder.Descending) },
+            OrderBy = new (ItemSortBy, SortOrder)[] { (ItemSortBy.DateCreated, SortOrder.Descending) },
             Recursive = true,
             DtoOptions = new DtoOptions(),
             Limit = 25
@@ -258,7 +261,10 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         if (userId != Guid.Empty)
         {
             var user = _userManager.GetUserById(userId);
-            query.SetUser(user);
+            if (user is not null)
+            {
+                query.SetUser(user);
+            }
         }
 
         var queryResult = _libraryManager.GetItemsResult(query);
@@ -287,14 +293,17 @@ public class OpdsFeedProvider : IOpdsFeedProvider
             var query = new InternalItemsQuery
             {
                 IncludeItemTypes = BookItemTypes,
-                OrderBy = new (string, SortOrder)[] { (ItemSortBy.SortName, SortOrder.Ascending) },
+                OrderBy = new (ItemSortBy, SortOrder)[] { (ItemSortBy.SortName, SortOrder.Ascending) },
                 IsFavorite = true,
                 Recursive = true,
                 DtoOptions = new DtoOptions()
             };
 
             var user = _userManager.GetUserById(userId);
-            query.SetUser(user);
+            if (user is not null)
+            {
+                query.SetUser(user);
+            }
 
             var items = _libraryManager.GetItemList(query);
             if (items is not null)
@@ -337,7 +346,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         var query = new InternalItemsQuery
         {
             IncludeItemTypes = BookItemTypes,
-            OrderBy = new (string, SortOrder)[] { (ItemSortBy.SortName, SortOrder.Ascending) },
+            OrderBy = new (ItemSortBy, SortOrder)[] { (ItemSortBy.SortName, SortOrder.Ascending) },
             NameStartsWith = filterStart,
             Recursive = true,
             DtoOptions = new DtoOptions()
@@ -346,7 +355,10 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         if (userId != Guid.Empty)
         {
             var user = _userManager.GetUserById(userId);
-            query.SetUser(user);
+            if (user is not null)
+            {
+                query.SetUser(user);
+            }
         }
 
         var items = _libraryManager.GetItemList(query);
@@ -385,7 +397,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         var query = new InternalItemsQuery
         {
             IncludeItemTypes = BookItemTypes,
-            OrderBy = new (string, SortOrder)[] { (ItemSortBy.SortName, SortOrder.Ascending) },
+            OrderBy = new (ItemSortBy, SortOrder)[] { (ItemSortBy.SortName, SortOrder.Ascending) },
             GenreIds = new[] { genreId },
             DtoOptions = new DtoOptions()
         };
@@ -393,7 +405,10 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         if (userId != Guid.Empty)
         {
             var user = _userManager.GetUserById(userId);
-            query.SetUser(user);
+            if (user is not null)
+            {
+                query.SetUser(user);
+            }
         }
 
         var queryResult = _libraryManager.GetItemList(query);
