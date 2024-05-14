@@ -214,13 +214,29 @@ public class OpdsApi : ControllerBase
 
     /// <summary>
     /// Gets the search result.
+    /// For backwards compatibility, there are multiple accepted query
+    /// parameters for the search terms.
     /// </summary>
-    /// <param name="searchTerms">The search terms.</param>
+    /// <param name="searchTerms">The search terms as historically used by this plugin.</param>
+    /// <param name="q">The search terms as defined by the OPDS spec.</param>
+    /// <param name="query">The search terms as some OPDS clients provide them.</param>
     /// <returns>The search feed xml.</returns>
     [HttpGet("Search")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult> SearchBookFromQuery([FromQuery] string searchTerms)
+    public async Task<ActionResult> SearchBookFromQuery(
+        [FromQuery] string? searchTerms = null,
+        [FromQuery] string? q = null,
+        [FromQuery] string? query = null)
     {
+        searchTerms ??= q ?? query;
+
+        // None of the query parameters was given, but we need at least one, so
+        // it's a Bad Request.
+        if (searchTerms == null)
+        {
+            return StatusCode(StatusCodes.Status400BadRequest);
+        }
+
         try
         {
             var userId = await AuthorizeAsync().ConfigureAwait(false);
