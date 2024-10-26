@@ -373,7 +373,6 @@ public class OpdsApi : ControllerBase
         var user = await _userManager.AuthenticateUser(
                 username,
                 password,
-                string.Empty,
                 HttpContext.GetNormalizedRemoteIP().ToString(),
                 true)
             .ConfigureAwait(false);
