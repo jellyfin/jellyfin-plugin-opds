@@ -2,7 +2,7 @@ name: "OPDS"
 guid: "F30880AE-3365-449E-B9E6-BF133C8401B0"
 imageUrl: "https://repo.jellyfin.org/releases/plugin/images/jellyfin-plugin-opds.png"
 version: 6
-targetAbi: "10.9.1.0"
+targetAbi: "10.10.0.0"
 framework: "net8.0"
 owner: "jellyfin"
 overview: "Provides an OPDS book feed"
@@ -12,7 +12,9 @@ description: >
 category: "General"
 artifacts:
   - "Jellyfin.Plugin.Opds.dll"
-changelog: |2-
+changelog: |-
+  - 10.10 fixes (#44) @crobibero
+
   ### New features and improvements ###
   - Add more descriptive feed name (#25) @crobibero
 
