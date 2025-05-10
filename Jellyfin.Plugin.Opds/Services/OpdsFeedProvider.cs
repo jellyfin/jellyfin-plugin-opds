@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Mime;
 using Jellyfin.Data.Enums;
+using Jellyfin.Database.Implementations.Enums;
 using Jellyfin.Plugin.Opds.Models;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Dto;
@@ -191,7 +192,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         var query = new InternalItemsQuery
         {
             IncludeItemTypes = BookItemTypes,
-            OrderBy = new (ItemSortBy, SortOrder)[] { (ItemSortBy.SortName, SortOrder.Ascending) },
+            OrderBy = [(ItemSortBy.SortName, SortOrder.Ascending)],
             Recursive = true,
             DtoOptions = new DtoOptions()
         };
