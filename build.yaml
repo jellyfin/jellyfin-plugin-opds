@@ -1,7 +1,7 @@
 name: "OPDS"
 guid: "F30880AE-3365-449E-B9E6-BF133C8401B0"
 imageUrl: "https://repo.jellyfin.org/releases/plugin/images/jellyfin-plugin-opds.png"
-version: 6
+version: 7
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 owner: "jellyfin"
@@ -13,13 +13,4 @@ category: "Books"
 artifacts:
   - "Jellyfin.Plugin.Opds.dll"
 changelog: |-
-  - 10.10 fixes (#44) @crobibero
-
-  ### New features and improvements ###
-  - Add more descriptive feed name (#25) @crobibero
-
-  ### Bug Fixes ###
-  - fix: Support different query parameter names in search (#41) @rluetzner
-
-  ### Dependency updates ###
-  - chore(deps): update dependency stylecop.analyzers to v1.2.0-beta.556 - autoclosed (#34) @renovate
+  - Jellyfin 10.11 support (#48) @crobibero
