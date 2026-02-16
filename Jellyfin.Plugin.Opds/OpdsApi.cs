@@ -46,6 +46,7 @@ public class OpdsApi : ControllerBase
     /// </summary>
     /// <returns>The root feed xml.</returns>
     [HttpGet]
+    [Produces("application/atom+xml")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetRootFeed()
     {
@@ -67,6 +68,7 @@ public class OpdsApi : ControllerBase
     /// </summary>
     /// <returns>The alphabetical feed xml.</returns>
     [HttpGet("Books")]
+    [Produces("application/atom+xml")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetAlphabeticalRootFeed()
     {
@@ -88,6 +90,7 @@ public class OpdsApi : ControllerBase
     /// </summary>
     /// <returns>The genres feed xml.</returns>
     [HttpGet("Genres")]
+    [Produces("application/atom+xml")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetGenres()
     {
@@ -109,6 +112,7 @@ public class OpdsApi : ControllerBase
     /// </summary>
     /// <returns>The recently added feed xml.</returns>
     [HttpGet("Books/RecentlyAdded")]
+    [Produces("application/atom+xml")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetRecentlyAdded()
     {
@@ -130,6 +134,7 @@ public class OpdsApi : ControllerBase
     /// </summary>
     /// <returns>The recently added feed xml.</returns>
     [HttpGet("Books/Favorite")]
+    [Produces("application/atom+xml")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetFavoriteBooks()
     {
@@ -152,6 +157,7 @@ public class OpdsApi : ControllerBase
     /// <param name="startFilter">The start filter.</param>
     /// <returns>The alphabetical feed xml.</returns>
     [HttpGet("Books/Letter/{startFilter}")]
+    [Produces("application/atom+xml")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetAlphabeticalFeed([FromRoute] string startFilter)
     {
@@ -174,6 +180,7 @@ public class OpdsApi : ControllerBase
     /// <param name="genreId">The genre id.</param>
     /// <returns>The books feed xml.</returns>
     [HttpGet("Genres/{genreId}")]
+    [Produces("application/atom+xml")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetBooksByGenre([FromRoute] Guid genreId)
     {
@@ -196,6 +203,7 @@ public class OpdsApi : ControllerBase
     /// <param name="searchTerms">The search terms.</param>
     /// <returns>The search feed xml.</returns>
     [HttpGet("Search/{searchTerms}")]
+    [Produces("application/atom+xml")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> SearchBookFromRoute(string searchTerms)
     {
@@ -222,6 +230,7 @@ public class OpdsApi : ControllerBase
     /// <param name="query">The search terms as some OPDS clients provide them.</param>
     /// <returns>The search feed xml.</returns>
     [HttpGet("Search")]
+    [Produces("application/atom+xml")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> SearchBookFromQuery(
         [FromQuery] string? searchTerms = null,
@@ -255,6 +264,7 @@ public class OpdsApi : ControllerBase
     /// </summary>
     /// <returns>The search description xml.</returns>
     [HttpGet("osd")]
+    [Produces("application/atom+xml")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult> GetSearchDescription()
     {
