@@ -202,7 +202,8 @@ public class OpdsApi : ControllerBase
         try
         {
             var userId = await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.SearchBooks(Request.PathBase, userId, searchTerms);
+            var feeds = await _opdsFeedProvider.SearchBooks(Request.PathBase, userId, searchTerms)
+                .ConfigureAwait(false);
             return BuildOutput(feeds);
         }
         catch (AuthenticationException)
@@ -240,7 +241,8 @@ public class OpdsApi : ControllerBase
         try
         {
             var userId = await AuthorizeAsync().ConfigureAwait(false);
-            var feeds = _opdsFeedProvider.SearchBooks(Request.PathBase, userId, searchTerms);
+            var feeds = await _opdsFeedProvider.SearchBooks(Request.PathBase, userId, searchTerms)
+                .ConfigureAwait(false);
             return BuildOutput(feeds);
         }
         catch (AuthenticationException)
