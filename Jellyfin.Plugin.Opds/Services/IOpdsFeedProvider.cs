@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Jellyfin.Plugin.Opds.Models;
 
 namespace Jellyfin.Plugin.Opds.Services;
@@ -85,7 +86,7 @@ public interface IOpdsFeedProvider
     /// <param name="userId">The user id to filter by.</param>
     /// <param name="searchTerm">the search term.</param>
     /// <returns>The search result.</returns>
-    FeedDto SearchBooks(string baseUrl, Guid userId, string searchTerm);
+    Task<FeedDto> SearchBooks(string baseUrl, Guid userId, string searchTerm);
 
     /// <summary>
     /// Gets the search description.

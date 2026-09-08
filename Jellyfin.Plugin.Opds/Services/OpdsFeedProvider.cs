@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Mime;
+using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
 using Jellyfin.Database.Implementations.Enums;
 using Jellyfin.Plugin.Opds.Models;
@@ -24,7 +25,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
     private static readonly AuthorDto PluginAuthor = new("Jellyfin", "https://github.com/jellyfin/jellyfin-plugin-opds");
 
     private readonly ILibraryManager _libraryManager;
-    private readonly ISearchEngine _searchEngine;
+    private readonly ISearchManager _searchManager;
     private readonly IServerApplicationHost _serverApplicationHost;
     private readonly IUserManager _userManager;
 
@@ -32,17 +33,17 @@ public class OpdsFeedProvider : IOpdsFeedProvider
     /// Initializes a new instance of the <see cref="OpdsFeedProvider"/> class.
     /// </summary>
     /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
-    /// <param name="searchEngine">Instance of the <see cref="ISearchEngine"/> interface.</param>
+    /// <param name="searchManager">Instance of the <see cref="ISearchManager"/> interface.</param>
     /// <param name="serverApplicationHost">Instance of the <see cref="IServerApplicationHost"/> interface.</param>
     /// <param name="userManager">Instance of the <see cref="IUserManager"/> interface.</param>
     public OpdsFeedProvider(
         ILibraryManager libraryManager,
-        ISearchEngine searchEngine,
+        ISearchManager searchManager,
         IServerApplicationHost serverApplicationHost,
         IUserManager userManager)
     {
         _libraryManager = libraryManager;
-        _searchEngine = searchEngine;
+        _searchManager = searchManager;
         _serverApplicationHost = serverApplicationHost;
         _userManager = userManager;
     }
@@ -463,15 +464,15 @@ public class OpdsFeedProvider : IOpdsFeedProvider
     }
 
     /// <inheritdoc />
-    public FeedDto SearchBooks(string baseUrl, Guid userId, string searchTerm)
+    public async Task<FeedDto> SearchBooks(string baseUrl, Guid userId, string searchTerm)
     {
-        var searchResult = _searchEngine.GetSearchHints(new SearchQuery
+        var searchResult = await _searchManager.GetSearchHintsAsync(new SearchQuery
         {
             Limit = 100,
             SearchTerm = searchTerm,
             IncludeItemTypes = BookItemTypes,
             UserId = userId
-        });
+        }).ConfigureAwait(false);
 
         var entries = new List<EntryDto>(searchResult.Items.Count);
         foreach (var result in searchResult.Items)
