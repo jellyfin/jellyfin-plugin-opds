@@ -643,7 +643,7 @@ public class OpdsFeedProvider : IOpdsFeedProvider
 
     private static string? GetSeriesName(Book book)
     {
-        return book.GetLookupInfo().SeriesName;
+        return book.SeriesName;
     }
 
     private static Guid GetSeriesId(Book book)
