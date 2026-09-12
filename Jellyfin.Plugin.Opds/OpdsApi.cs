@@ -105,6 +105,27 @@ public class OpdsApi : ControllerBase
     }
 
     /// <summary>
+    /// Gets the list of book series.
+    /// </summary>
+    /// <returns>The series feed xml.</returns>
+    [HttpGet("Series")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult> GetSeries()
+    {
+        try
+        {
+            var userId = await AuthorizeAsync().ConfigureAwait(false);
+            var feeds = _opdsFeedProvider.GetBookSeries(Request.PathBase, userId);
+            return BuildOutput(feeds);
+        }
+        catch (AuthenticationException)
+        {
+            Response.Headers.Append(AuthHeaderKey, AuthHeaderValue);
+            return StatusCode(StatusCodes.Status401Unauthorized);
+        }
+    }
+
+    /// <summary>
     /// Gets the list of recently added books.
     /// </summary>
     /// <returns>The recently added feed xml.</returns>
@@ -181,6 +202,28 @@ public class OpdsApi : ControllerBase
         {
             var userId = await AuthorizeAsync().ConfigureAwait(false);
             var feeds = _opdsFeedProvider.GetBooksByGenre(Request.PathBase, userId, genreId);
+            return BuildOutput(feeds);
+        }
+        catch (AuthenticationException)
+        {
+            Response.Headers.Append(AuthHeaderKey, AuthHeaderValue);
+            return StatusCode(StatusCodes.Status401Unauthorized);
+        }
+    }
+
+    /// <summary>
+    /// Gets the list of books in the series.
+    /// </summary>
+    /// <param name="seriesId">The series id.</param>
+    /// <returns>The books feed xml.</returns>
+    [HttpGet("Series/{seriesId}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult> GetBooksBySeries([FromRoute] Guid seriesId)
+    {
+        try
+        {
+            var userId = await AuthorizeAsync().ConfigureAwait(false);
+            var feeds = _opdsFeedProvider.GetBooksBySeries(Request.PathBase, userId, seriesId);
             return BuildOutput(feeds);
         }
         catch (AuthenticationException)

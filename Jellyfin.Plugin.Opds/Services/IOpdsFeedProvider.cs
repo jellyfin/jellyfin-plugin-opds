@@ -32,6 +32,14 @@ public interface IOpdsFeedProvider
     FeedDto GetBookGenres(string baseUrl, Guid userId);
 
     /// <summary>
+    /// Gets the list of book series.
+    /// </summary>
+    /// <param name="baseUrl">The request path base.</param>
+    /// <param name="userId">The user id to filter by.</param>
+    /// <returns>The list of series.</returns>
+    FeedDto GetBookSeries(string baseUrl, Guid userId);
+
+    /// <summary>
     /// Gets the list of recently added books.
     /// </summary>
     /// <param name="baseUrl">The request path base.</param>
@@ -64,6 +72,15 @@ public interface IOpdsFeedProvider
     /// <param name="genreId">The genre id.</param>
     /// <returns>The books in the genre.</returns>
     FeedDto GetBooksByGenre(string baseUrl, Guid userId, Guid genreId);
+
+    /// <summary>
+    /// Gets the list of books within a series.
+    /// </summary>
+    /// <param name="baseUrl">The request path base.</param>
+    /// <param name="userId">The user id to filter by.</param>
+    /// <param name="seriesId">The series id.</param>
+    /// <returns>The books in the series.</returns>
+    FeedDto GetBooksBySeries(string baseUrl, Guid userId, Guid seriesId);
 
     /// <summary>
     /// Get the book image path.

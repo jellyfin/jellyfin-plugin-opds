@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Mime;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
 using Jellyfin.Database.Implementations.Enums;
@@ -97,6 +100,17 @@ public class OpdsFeedProvider : IOpdsFeedProvider
                     Links = new List<LinkDto>
                     {
                         new(baseUrl + "/opds/genres", "application/atom+xml;profile=opds-catalog")
+                    }
+                },
+                new(
+                    "Series",
+                    "/opds/series",
+                    new ContentDto("text", "Book series"),
+                    timestamp)
+                {
+                    Links = new List<LinkDto>
+                    {
+                        new(baseUrl + "/opds/series", "application/atom+xml;profile=opds-catalog")
                     }
                 },
                 new(
@@ -230,6 +244,49 @@ public class OpdsFeedProvider : IOpdsFeedProvider
         }
 
         return feedDto;
+    }
+
+    /// <inheritdoc />
+    public FeedDto GetBookSeries(string baseUrl, Guid userId)
+    {
+        var utcNow = DateTime.UtcNow;
+        var entries = GetVisibleBooks(userId)
+            .Select(book => new
+            {
+                Book = book,
+                Name = GetSeriesName(book)
+            })
+            .Where(item => !string.IsNullOrWhiteSpace(item.Name))
+            .GroupBy(item => GetSeriesId(item.Book))
+            .Select(group => new
+            {
+                Id = group.Key,
+                Name = group.Select(item => item.Name).First()!
+            })
+            .OrderBy(series => series.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(series => new EntryDto(
+                series.Name,
+                "/opds/series/" + series.Id,
+                utcNow)
+            {
+                Links = new List<LinkDto>
+                {
+                    new(
+                        "subsection",
+                        baseUrl + "/opds/series/" + series.Id,
+                        "application/atom+xml;profile=opds-catalog")
+                }
+            })
+            .ToList();
+
+        return new FeedDto
+        {
+            Id = Guid.NewGuid().ToString(),
+            Author = PluginAuthor,
+            Title = GetFeedName("Series"),
+            Links = CreateNavigationLinks(baseUrl, "/opds/series"),
+            Entries = entries
+        };
     }
 
     /// <inheritdoc />
@@ -450,6 +507,29 @@ public class OpdsFeedProvider : IOpdsFeedProvider
     }
 
     /// <inheritdoc />
+    public FeedDto GetBooksBySeries(string baseUrl, Guid userId, Guid seriesId)
+    {
+        var books = GetVisibleBooks(userId)
+            .Where(book => GetSeriesId(book) == seriesId)
+            .OrderBy(book => book.SortName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var seriesName = books
+            .Select(GetSeriesName)
+            .FirstOrDefault(name => !string.IsNullOrWhiteSpace(name))
+            ?? "Series";
+
+        return new FeedDto
+        {
+            Id = Guid.NewGuid().ToString(),
+            Author = PluginAuthor,
+            Title = GetFeedName(seriesName),
+            Links = CreateNavigationLinks(baseUrl, "/opds/series/" + seriesId),
+            Entries = books.Select(book => CreateEntry(book, baseUrl)).ToList()
+        };
+    }
+
+    /// <inheritdoc />
     public string? GetBookImage(Guid bookId)
     {
         var item = _libraryManager.GetItemById(bookId);
@@ -537,6 +617,62 @@ public class OpdsFeedProvider : IOpdsFeedProvider
     {
         var serverName = _serverApplicationHost.FriendlyName;
         return title + " - " + (string.IsNullOrEmpty(serverName) ? "Jellyfin" : serverName);
+    }
+
+    private IEnumerable<Book> GetVisibleBooks(Guid userId)
+    {
+        var query = new InternalItemsQuery
+        {
+            IncludeItemTypes = BookItemTypes,
+            OrderBy = new (ItemSortBy, SortOrder)[] { (ItemSortBy.SortName, SortOrder.Ascending) },
+            Recursive = true,
+            DtoOptions = new DtoOptions()
+        };
+
+        if (userId != Guid.Empty)
+        {
+            var user = _userManager.GetUserById(userId);
+            if (user is not null)
+            {
+                query.SetUser(user);
+            }
+        }
+
+        return _libraryManager.GetItemList(query).OfType<Book>();
+    }
+
+    private static string? GetSeriesName(Book book)
+    {
+        return book.GetLookupInfo().SeriesName;
+    }
+
+    private static Guid GetSeriesId(Book book)
+    {
+        if (book.SeriesId != Guid.Empty)
+        {
+            return book.SeriesId;
+        }
+
+        var seriesName = GetSeriesName(book);
+        if (string.IsNullOrWhiteSpace(seriesName))
+        {
+            return Guid.Empty;
+        }
+
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(seriesName.Trim().ToUpperInvariant()));
+        return new Guid(hash[..16]);
+    }
+
+    private static LinkDto[] CreateNavigationLinks(string baseUrl, string path)
+    {
+        return new[]
+        {
+            new LinkDto("self", baseUrl + path + "?", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+            new LinkDto("start", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+            new LinkDto("up", baseUrl + "/opds", "application/atom+xml;profile=opds-catalog;type=feed;kind=navigation"),
+            new LinkDto("search", baseUrl + "/opds/osd", "application/opensearchdescription+xml"),
+            new LinkDto("search", baseUrl + "/opds/search/{searchTerms}", "application/atom+xml", "Search")
+        };
     }
 
     private EntryDto CreateEntry(Book book, string baseUrl)
